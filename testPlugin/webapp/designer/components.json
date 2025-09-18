@@ -1,0 +1,15 @@
+{
+	"components": [
+		{
+			"id": "testPlugin",
+			"type": "VIEW_PLUGIN",
+			"allowMultipleInstances": false,
+			"name": "altea.dmc.plugin.testPlugin.testPlugin",
+			"propertyEditor": "altea.dmc.plugin.testPlugin.testPlugin.builder.PropertyEditor",
+			"i18n": "altea.dmc.plugin.testPlugin.testPlugin.i18n.i18n",
+            "productionProcessEnabled": true,
+           "productionProcessTitle": "testPlugin",
+			"supportedPodTypes": ["WORK_CENTER","OPERATION","ORDER"]
+		}   
+	]
+}

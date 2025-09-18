@@ -1,0 +1,18 @@
+{
+  "name": "testPlugin",
+  "version": "0.0.1",
+  "description": "",
+  "devDependencies": {
+
+  },
+  "dependencies": {
+    "@sap/approuter": "^14.3.2"
+  },
+  "scripts": {
+    "start": "node node_modules/@sap/approuter/approuter.js",
+    "login": "cf login -a https://api.cf.eu20-001.hana.ondemand.com -o 'SUNINO SPA' -s 'SAP DMC Test' --sso",
+    "build": "rimraf resources ../mta_archives && cd ../ && mbt build --mtar archive",
+    "deploy": "cf deploy ../mta_archives/archive.mtar --retries 1",
+    "build-deploy": "npm run build && npm run deploy"
+  }
+}
