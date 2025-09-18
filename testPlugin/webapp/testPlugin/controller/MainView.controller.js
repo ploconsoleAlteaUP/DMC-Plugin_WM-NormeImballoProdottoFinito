@@ -1,8 +1,9 @@
 sap.ui.define([
     'jquery.sap.global',
     "sap/dm/dme/podfoundation/controller/PluginViewController",
-    "sap/ui/model/json/JSONModel"
-], function (jQuery, PluginViewController, JSONModel) {
+    "sap/ui/model/json/JSONModel",
+    "sap/m/MessageBox"
+], function (jQuery, PluginViewController, JSONModel, MessageBox) {
     "use strict";
 
     return PluginViewController.extend("altea.dmc.plugin.testPlugin.testPlugin.controller.MainView", {
@@ -16,7 +17,7 @@ sap.ui.define([
 
         onAfterRendering: function () {
 
-            // assegno i valori passato dal componente (quello di configurazione)
+            // assegno i valori passati dal componente (quello di configurazione)
             this.getView().byId("qtyPallet").setVisible(this.getConfiguration().addQtaPallet);
             this.getView().byId("qtyScatola").setVisible(this.getConfiguration().addQtaScatola);
             this.getView().byId("qtyPalletScatola").setVisible(this.getConfiguration().addQtaScatolaPerPallet);
@@ -59,26 +60,72 @@ sap.ui.define([
 
                         debugger;
 
-                        that.getView().getModel("wmModel").setProperty("pallet", sTarget);
-                        that.getView().getModel("wmModel").setProperty("palletBusy", false);
+                        that.getView().getModel("wmModel").setProperty("/pallet", sTarget);
+                        that.getView().getModel("wmModel").setProperty("/palletBusy", false);
 
-                        // /destination/S4H_ODATA_INTEGRATION/API_PACKINGINSTRUCTION/PackingInstructionComponent(guid'fa163e8d-ac08-1fe0-9a80-f43214372824')/to_PackingInstructionHeader
+                        // eseguo la chiamata per capire se è una HU annidata o no
+                        const sUrl = `/destination/S4H_ODATA_INTEGRATION/API_PACKINGINSTRUCTION/PackingInstructionComponent(guid'${sUUID}')`;
+                        jQuery.ajax({
+                            url: sUrl,
+                            method: "GET",
+                            headers: {
+                                "Accept": "application/json"
+                            },
+                            success: function (oData) {
+                                
+                                if (!!!!oData && !!!!oData.d && !!!!oData.d.results) {
+
+                                    // controllo se il campo PackingInstructionItemCategory è valorizzato con I
+                                    const aFiltered = oData.d.results.filter(a => a.PackingInstructionItemCategory == 'I');
+
+                                    if (aFiltered.length > 0) {
+                                        that.getView().getModel("wmModel").setProperty("/qtyPalletScatola", aFiltered[0].PackingInstructionItmTargetQty);
+                                    } else {
+                                        // fermo il busy sy scatola e palle su scatola
+                                        that.getView().getModel("wmModel").setProperty("/scatolaBusy", false);
+                                        that.getView().getModel("wmModel").setProperty("/palletscatolaBusy", false);
+
+                                        // nascondo i campi perché non ha senso mostrarli
+                                        that.getView().byId("qtyScatola").setVisible(false);
+                                        that.getView().byId("qtyPalletScatola").setVisible(false);
+                                    }
+
+                                } else {
+
+                                    // fermo il busy sy scatola e palle su scatola
+                                    that.getView().getModel("wmModel").setProperty("/scatolaBusy", false);
+                                    that.getView().getModel("wmModel").setProperty("/palletscatolaBusy", false);
+
+                                    // nascondo i campi perché non ha senso mostrarli
+                                    that.getView().byId("qtyScatola").setVisible(false);
+                                    that.getView().byId("qtyPalletScatola").setVisible(false);
+
+                                }
+                            },
+                            error: function (oError) {
+                                debugger;
+                            }
+                        });
+
                     } else {
                         // nascondo i campi
                         that.getView().byId("wm").setVisible(false);
 
-                        // formo i busy
-                        that.getView().getModel("wmModel").setProperty("palletBusy", false);
-                        that.getView().getModel("wmModel").setProperty("scatolaBusy", false);
-                        that.getView().getModel("wmModel").setProperty("palletscatolaBusy", false);
+                        // fermo i busy
+                        that.getView().getModel("wmModel").setProperty("/palletBusy", false);
+                        that.getView().getModel("wmModel").setProperty("/scatolaBusy", false);
+                        that.getView().getModel("wmModel").setProperty("/palletscatolaBusy", false);
+
+                        // Creo il messaggio
+                        MessageBox.error("There are no packaging standards");
                     }
                     console.log("API result:", oData);
-                    sap.m.MessageToast.show("Dati caricati correttamente");
+                    //sap.m.MessageToast.show("Dati caricati correttamente");
                 }.bind(this),
                 error: function (oError) {
-                    that.getView().getModel("wmModel").setProperty("palletBusy", false);
-                    that.getView().getModel("wmModel").setProperty("scatolaBusy", false);
-                    that.getView().getModel("wmModel").setProperty("palletscatolaBusy", false);
+                    that.getView().getModel("wmModel").setProperty("/palletBusy", false);
+                    that.getView().getModel("wmModel").setProperty("/scatolaBusy", false);
+                    that.getView().getModel("wmModel").setProperty("/palletscatolaBusy", false);
 
                     sap.m.MessageBox.error("Error encountered while fetching data from 'Warehouse Management'");
                 }.bind(this)
