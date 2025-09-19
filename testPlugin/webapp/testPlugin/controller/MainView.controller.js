@@ -6,12 +6,13 @@ sap.ui.define([
 ], function (jQuery, PluginViewController, JSONModel, MessageBox) {
     "use strict";
 
+    let oController;
     return PluginViewController.extend("altea.dmc.plugin.testPlugin.testPlugin.controller.MainView", {
         onInit: function () {
             PluginViewController.prototype.onInit.apply(this, arguments);
 
             console.log(`URL: ${this.getPublicApiRestDataSourceUri()}`);
-
+            oController = this;
         },
 
 
@@ -30,6 +31,27 @@ sap.ui.define([
             // carico i dati del WM dopo il caricamento effettivo del plugin
             this.loadData();
 
+            // richiamo la function per intercettare il dialog GoodsReceipt
+            this.interceptGoodsReceiptDialog();
+
+        },
+
+        interceptGoodsReceiptDialog: function () {
+            const originalInit = sap.dm.dme.inventoryplugins.goodsReceiptPlugin.controller.PluginView.prototype.GRPostController.onInitGoodsReceiptDialog;
+
+            sap.dm.dme.inventoryplugins.goodsReceiptPlugin.controller.PluginView.prototype.GRPostController.onInitGoodsReceiptDialog = function () {
+
+                // prima
+                console.log("Prima del GR init");
+
+                // originale
+                originalInit.apply(this, arguments);
+
+                let oModel = sap.dm.dme.inventoryplugins.goodsReceiptPlugin.controller.PluginView.prototype.GRPostController.oController.getView().getModel("postModel");
+
+                // dopo
+                oModel.setProperty("/quantity/value", oController.getView().getModel("wmModel").getProperty("/pallet"));
+            };
         },
 
         loadData: function () {
@@ -134,19 +156,6 @@ sap.ui.define([
                     sap.m.MessageBox.error("Error encountered while fetching data from 'Warehouse Management'");
                 }.bind(this)
             });
-
-
-            //  intercetto l'evento del POST
-            sap.dm.dmc.pluginManager.subscribe("GoodsReceipt", "init", function (oData) {
-                debugger;
-                console.log("Intercettato init GR:", oData);
-
-                // puoi modificare il modello
-                const oPostModel = this.getView().getModel("postModel");
-                if (oPostModel) {
-                    oPostModel.setProperty("/comments", "Testo aggiunto dal mio plugin");
-                }
-            }.bind(this));
         },
 
         onBeforeRenderingPlugin: function () {
