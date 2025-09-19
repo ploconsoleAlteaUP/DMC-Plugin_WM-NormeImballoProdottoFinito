@@ -12,4 +12,5 @@
 
 ## Funzionalità incluse
 ### 1. Richiamo norme di imballo prodotto finito
+![Immagine di WM - Norme imballo prodotto finito](testPlugin/images/wm.png)
 ### 2. Settaggio automatico della quantità sul Good Receipt
