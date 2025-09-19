@@ -36,16 +36,21 @@ sap.ui.define([
             const that = this;
             const sMaterial = this.getPodSelectionModel().selectedOrderData.material.material;
 
+            //avvio i loader
+            that.getView().getModel("wmModel").setProperty("/palletBusy", true);
+            that.getView().getModel("wmModel").setProperty("/scatolaBusy", true);
+            that.getView().getModel("wmModel").setProperty("/palletscatolaBusy", true);
+
             const sFilter = encodeURIComponent(
-                `Material eq '${sMaterial}' and PackingInstructionItemIsDel eq false`
+                `substringof('${sMaterial}',PackingInstructionNumber)`
             );
 
             const sExpand = encodeURIComponent(
-                "to_PackingInstructionHeader,to_PackingInstructionHeader/to_PackingInstructionComponent"
+                "to_PackingInstructionComponent"
             );
 
             const sUrl = "/destination/S4H_ODATA_INTEGRATION/API_PACKINGINSTRUCTION/" +
-                "PackingInstructionComponent?$filter=" + sFilter + "&$expand=" + sExpand;
+                "PackingInstructionHeader?$filter=" + sFilter + "&$expand=" + sExpand;
 
             jQuery.ajax({
                 url: sUrl,
@@ -55,57 +60,56 @@ sap.ui.define([
                 },
                 success: function (oData) {
                     if (!!!!oData && !!!!oData.d && !!!!oData.d.results) {
-                        let sTarget = oData.d.results[0].PackingInstructionItmTargetQty;
-                        let sUUID = oData.d.results[0].PackingInstructionItemSystUUID;
 
-                        debugger;
+                        const aData = oData.d.results;
 
-                        that.getView().getModel("wmModel").setProperty("/pallet", sTarget);
-                        that.getView().getModel("wmModel").setProperty("/palletBusy", false);
+                        //Ricerco se tra i risultati abbiamo un to_PackingInstructionComponent/PackingInstructionItemCategory uguale a I
+                        const aPacking = aData.filter(a => a.to_PackingInstructionComponent.results.some(b => b.PackingInstructionItemCategory === "I"));
 
-                        // eseguo la chiamata per capire se è una HU annidata o no
-                        const sUrl = `/destination/S4H_ODATA_INTEGRATION/API_PACKINGINSTRUCTION/PackingInstructionComponent(guid'${sUUID}')`;
-                        jQuery.ajax({
-                            url: sUrl,
-                            method: "GET",
-                            headers: {
-                                "Accept": "application/json"
-                            },
-                            success: function (oData) {
-                                
-                                if (!!!!oData && !!!!oData.d && !!!!oData.d.results) {
+                        if (!!!!aPacking && aPacking.length > 0) {
+                            // devo prendere il PackingInstructionItmTargetQty del to_PackingInstructionComponent/PackingInstructionItemCategory uguale a I
+                            // e moltiplicarlo per il to_PackingInstructionComponent/PackingInstructionItemCategory diverso da I
+                            let qtaPallet = 0, qtaScatola = 0, qtaScatolePallet = 0;
+                            for (let item of aData) {
+                                for (let component of item.to_PackingInstructionComponent.results) {
 
-                                    // controllo se il campo PackingInstructionItemCategory è valorizzato con I
-                                    const aFiltered = oData.d.results.filter(a => a.PackingInstructionItemCategory == 'I');
-
-                                    if (aFiltered.length > 0) {
-                                        that.getView().getModel("wmModel").setProperty("/qtyPalletScatola", aFiltered[0].PackingInstructionItmTargetQty);
-                                    } else {
-                                        // fermo il busy sy scatola e palle su scatola
-                                        that.getView().getModel("wmModel").setProperty("/scatolaBusy", false);
-                                        that.getView().getModel("wmModel").setProperty("/palletscatolaBusy", false);
-
-                                        // nascondo i campi perché non ha senso mostrarli
-                                        that.getView().byId("qtyScatola").setVisible(false);
-                                        that.getView().byId("qtyPalletScatola").setVisible(false);
+                                    if (component.PackingInstructionItemCategory === "I") {
+                                        qtaScatolePallet = component.PackingInstructionItmTargetQty;
+                                    } else if (component.Material === sMaterial) {
+                                        qtaScatola = component.PackingInstructionItmTargetQty;
                                     }
 
-                                } else {
+                                }
+                            }
+                            qtaPallet = qtaScatola * qtaScatolePallet;
 
-                                    // fermo il busy sy scatola e palle su scatola
-                                    that.getView().getModel("wmModel").setProperty("/scatolaBusy", false);
-                                    that.getView().getModel("wmModel").setProperty("/palletscatolaBusy", false);
+                            // assegno i valori ai rispettivi oggetti della view
+                            that.getView().getModel("wmModel").setProperty("/pallet", qtaPallet);
+                            that.getView().getModel("wmModel").setProperty("/scatola", qtaScatola);
+                            that.getView().getModel("wmModel").setProperty("/palletscatola", qtaScatolePallet);
 
-                                    // nascondo i campi perché non ha senso mostrarli
-                                    that.getView().byId("qtyScatola").setVisible(false);
-                                    that.getView().byId("qtyPalletScatola").setVisible(false);
+                            // fermo i busy
+                            that.getView().getModel("wmModel").setProperty("/palletBusy", false);
+                            that.getView().getModel("wmModel").setProperty("/scatolaBusy", false);
+                            that.getView().getModel("wmModel").setProperty("/palletscatolaBusy", false);
+
+                        } else {
+
+                            for (let item of aData) {
+                                for (let component of item.to_PackingInstructionComponent.results) {
+
+                                    if (component.Material === sMaterial) {
+                                        that.getView().getModel("wmModel").setProperty("/pallet", component.PackingInstructionItmTargetQty);
+                                    }
 
                                 }
-                            },
-                            error: function (oError) {
-                                debugger;
                             }
-                        });
+
+                            // fermo i busy
+                            that.getView().getModel("wmModel").setProperty("/palletBusy", false);
+                            that.getView().getModel("wmModel").setProperty("/scatolaBusy", false);
+                            that.getView().getModel("wmModel").setProperty("/palletscatolaBusy", false);
+                        }
 
                     } else {
                         // nascondo i campi
@@ -130,19 +134,42 @@ sap.ui.define([
                     sap.m.MessageBox.error("Error encountered while fetching data from 'Warehouse Management'");
                 }.bind(this)
             });
+
+
+            //  intercetto l'evento del POST
+            sap.dm.dmc.pluginManager.subscribe("GoodsReceipt", "init", function (oData) {
+                debugger;
+                console.log("Intercettato init GR:", oData);
+
+                // puoi modificare il modello
+                const oPostModel = this.getView().getModel("postModel");
+                if (oPostModel) {
+                    oPostModel.setProperty("/comments", "Testo aggiunto dal mio plugin");
+                }
+            }.bind(this));
         },
 
         onBeforeRenderingPlugin: function () {
             this.subscribe("UpdateAssemblyStatusEvent", this.handleAssemblyStatusEvent, this);
             this.subscribe("WorklistSelectEvent", this.handleWorklistSelectEvent, this);
+
+            this.subscribe("goodsReceiptSummaryEvent", this._SummaryData, this);
+            this.subscribe("orderSelectionEvent", this._SummaryData, this);
+
             var oView = this.getView();
             if (!oView) {
                 return;
             }
         },
 
+        _SummaryData: function (sChannelId, sEventId, oData) {
+            this.loadData();
+        },
+
         handleAssemblyStatusEvent: function (s, E, oData) {
             console.log("oData in handleAssemblyStatusEvent", oData);
+
+            this.loadData();
             /*this.getView().byId("componentValue").setText(oData.scanInput);
             this.getView().byId("statusButton").setText(oData.status);
             this.getView().byId("statusButton").setType(oData.type);
@@ -150,6 +177,8 @@ sap.ui.define([
         },
 
         handleWorklistSelectEvent: function (s, E, oData) {
+            this.loadData();
+
             if (this.isEventFiredByThisPlugin(oData)) {
                 return;
             }
