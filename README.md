@@ -8,3 +8,8 @@
 ### Commit e Push delle modifiche
 #### Regole
 1. inserire sempre le proprie iniziali come titolo del commit ed una breve descrizione. Es: PL - Fix salvataggio imballo
+
+
+## Funzionalità incluse
+### 1. Richiamo norme di imballo prodotto finito
+### 2. Settaggio automatico della quantità sul Good Receipt
