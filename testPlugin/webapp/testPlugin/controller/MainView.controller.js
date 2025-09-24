@@ -122,6 +122,8 @@ sap.ui.define([
 
                                     if (component.Material === sMaterial) {
                                         that.getView().getModel("wmModel").setProperty("/pallet", component.PackingInstructionItmTargetQty);
+                                        that.getView().getModel("wmModel").setProperty("/scatola", 0);
+                                        that.getView().getModel("wmModel").setProperty("/palletscatola", 0);
                                     }
 
                                 }
