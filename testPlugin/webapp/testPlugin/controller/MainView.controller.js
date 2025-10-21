@@ -15,9 +15,7 @@ sap.ui.define([
             oController = this;
         },
 
-
         onAfterRendering: function () {
-
             // assegno i valori passati dal componente (quello di configurazione)
             this.getView().byId("qtyPallet").setVisible(this.getConfiguration().addQtaPallet);
             this.getView().byId("qtyScatola").setVisible(this.getConfiguration().addQtaScatola);
@@ -33,7 +31,6 @@ sap.ui.define([
 
             // richiamo la function per intercettare il dialog GoodsReceipt
             this.interceptGoodsReceiptDialog();
-
         },
 
         interceptGoodsReceiptDialog: function () {
@@ -51,6 +48,17 @@ sap.ui.define([
 
                 // dopo
                 oModel.setProperty("/quantity/value", oController.getView().getModel("wmModel").getProperty("/pallet"));
+
+                // debugger;
+                // sap.ui.getCore().byId('__label14').setVisible(false);
+                // // sap.ui.getCore().byId('GOODSRECEIPTView--plugincontainer8JOCN08Q---goodsReceiptPlugin--batchNumberFilter').setVisible(false)
+                // this.findControlByRegex("/^GOODSRECEIPTView--plugincontainer.*---goodsReceiptPlugin--batchNumberFilter$/").setVisible(false);
+
+                // // set Quantity/Unit field in read only mode
+                // // sap.ui.getCore().byId('GOODSRECEIPTView--plugincontainer8JOCN08Q---goodsReceiptPlugin--quantity').setEditable(false);
+                // // sap.ui.getCore().byId('GOODSRECEIPTView--plugincontainer8JOCN08Q---goodsReceiptPlugin--uom').setEnabled(false);
+                // this.findControlByRegex("/^GOODSRECEIPTView--plugincontainer.*---goodsReceiptPlugin--quantity$/").setVisible(false);
+                // this.findControlByRegex("/^GOODSRECEIPTView--plugincontainer.*---goodsReceiptPlugin--uom$/").setVisible(false);
             };
         },
 
@@ -158,6 +166,62 @@ sap.ui.define([
                     sap.m.MessageBox.error("Error encountered while fetching data from 'Warehouse Management'");
                 }.bind(this)
             });
+
+            // get storage location
+            this.getPutawayStorageLocation();
+        },
+
+        // {DMC}/order/v1/orders?plant=2310&order=1000084 --> e prelevare "putawayStorageLocation"
+        getPutawayStorageLocation: function () {
+            const that = this;
+            const podSelectionModel = this.getPodSelectionModel();
+            const orderData = podSelectionModel.selectedOrderData;
+            const order = orderData.order;
+            const plant = podSelectionModel.selectedPhaseData.resource.plant;
+
+            const sUrl = "/destination/S4H_ODATA_INTEGRATION/order/v1/" +
+                "orders?plant=" + plant + "&order" + order;
+
+            jQuery.ajax({
+                url: sUrl,
+                method: "GET",
+                headers: {
+                    "Accept": "application/json"
+                },
+                success: function (oData) {
+                    debugger;
+                    if (!!!!oData && !!!!oData.d && !!!!oData.d.results) {
+                        console.log("Goods Receipt Summary data:", oData.d.results[0]);
+                        // aggiornare wmModel con un singolo item [{}]
+
+                        // receivedQuantity => 56
+                        // targetQuantity => 140
+                        var items = [{
+                            materialNo: orderData.material.material,
+                            description: orderData.material.description,
+                            storageLocation: oData.d.results[0].putawayStorageLocation,
+                            postedQuantityDisplay: orderData.completedQty + ' of ' + orderData.plannedQty + ' ' + orderData.baseCommercialUom,
+                            postedQuantityPercent: orderData.completedQty
+                        }];
+                        that.getView().getModel("wmModel").setProperty("/lineItems", items);
+                    }
+                },
+                error: function (err) {
+                    console.error("Errore nel recupero dati GR summary:", err);
+                    sap.m.MessageBox.error("Errore nel recupero dati Goods Receipt");
+                }
+            });
+        },
+
+        // TODO show history table from fragment getting data from
+        // https://api.sap.com/api/sapdme_quantityConfirmation/path/get_quantityConfirmation_v1_postingHistory
+        onShowPostings: function(evt){
+
+        },
+
+        // TODO open dialog and set like  
+        onPostItem: function(evt){
+
         },
 
         onBeforeRenderingPlugin: function () {
@@ -171,9 +235,27 @@ sap.ui.define([
             if (!oView) {
                 return;
             }
+
+            // this.configureGoodsReceiptTable();
         },
 
+        // findControlByRegex: function(vPattern) {
+        //     const regex = vPattern instanceof RegExp ? vPattern : new RegExp(vPattern);
+        //     const aControls = Object.values(sap.ui.getCore().mElements);
+        //     return aControls.find(ctrl => regex.test(ctrl.getId())) || null;
+        // },
+
+        // configureGoodsReceiptTable: function () {
+        //     debugger;
+        //     // sap.ui.getCore().byId("GOODSRECEIPTView--plugincontainer8JOCN08Q---goodsReceiptPlugin--grList").getColumns()[0].setVisible(false);
+        //     // sap.ui.getCore().byId("GOODSRECEIPTView--plugincontainer8JOCN08Q---goodsReceiptPlugin--grList").getColumns()[3].setVisible(false);
+        //     var table = this.findControlByRegex("/^GOODSRECEIPTView--plugincontainer.*---goodsReceiptPlugin--grList$/");
+        //     table.getColumns()[0].setVisible(false);
+        //     table.getColumns()[3].setVisible(false);
+        // },
+
         _SummaryData: function (sChannelId, sEventId, oData) {
+            debugger;
             this.loadData();
         },
 

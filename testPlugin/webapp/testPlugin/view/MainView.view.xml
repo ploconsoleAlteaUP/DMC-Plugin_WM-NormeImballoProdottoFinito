@@ -33,6 +33,51 @@
                             </content>
                         </TileContent>
                     </HeaderContainer>
+
+                    <!-- Table -->
+                    <!-- headerText="{= 'Items (' + ${wmModel>/lineItems}.length + ')' }" -->
+
+                    <Table
+                        id="itemsTable"
+                        items="{wmModel>/lineItems}"
+                        width="100%"
+                        inset="false"
+                        mode="None">
+                        
+                        <columns>
+                            <Column><Text text="Material No."/></Column>
+                            <Column><Text text="Description"/></Column>
+                            <Column><Text text="Storage Location"/></Column>
+                            <Column hAlign="End"><Text text="Posted Quantity"/></Column>
+                            <Column hAlign="Center"></Column>
+                        </columns>
+
+                        <items>
+                            <ColumnListItem>
+                                <cells>
+                                    <Text text="{wmModel>/materialNo}"/>
+                                    <Text text="{wmModel>/description}"/>
+                                    <Text text="{wmModel>/storageLocation}"/>
+                                    
+                                    <!-- Quantità con ProgressIndicator -->
+                                    <HBox justifyContent="End" alignItems="Center">
+                                    <!-- Quantità con ProgressIndicator -->
+                                        <ProgressIndicator
+                                            displayValue="{wmModel>/postedQuantityDisplay}"
+                                            percentValue="{wmModel>/postedQuantityPercent}"
+                                            showValue="true"
+                                            width="10rem"/>
+                                    </HBox>
+
+                                    <!-- Buttons -->
+                                    <HBox justifyContent="Center" alignItems="Center">
+                                        <Button text="Postings" type="Transparent" press=".onShowPostings"/>
+                                        <Button text="Post" type="Emphasized" press=".onPostItem"/>
+                                    </HBox>
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
                 </content>
 	    </Panel>		
         

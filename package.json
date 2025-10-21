@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "generator-dmcpodplugin": "^1.0.19"
+    "generator-dmcpodplugin": "^1.0.19",
+    "rimraf": "^6.0.1"
   }
 }
