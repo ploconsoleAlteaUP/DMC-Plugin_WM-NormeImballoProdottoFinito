@@ -1,0 +1,64 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core" xmlns:f="sap.ui.layout.form">
+    <Dialog 
+        id="goodsReceiptDialog"
+        title="Create Goods Receipt"
+        class="sapUiContentPadding"
+        resizable="false"
+        draggable="true"
+        afterClose=".onDialogClose">
+
+        <f:SimpleForm
+            editable="true"
+            layout="ResponsiveGridLayout"
+            labelSpanXL="4"
+            labelSpanL="4"
+            labelSpanM="4"
+            labelSpanS="12"
+            adjustLabelSpan="false"
+            columnsXL="2"
+            columnsL="2"
+            columnsM="1"
+            singleContainerFullSize="false"
+            width="100%">
+
+
+            <!-- Material Number -->
+            <Label text="Material Number:" required="true"/>
+            <Input value="{wmModel>/selectedItem/material}" editable="false"/>
+
+            <!-- Quantity / Unit -->
+            <Label text="Quantity / Unit:" required="true"/>
+            <HBox>
+                <Input width="50%" value="{wmModel>/selectedItem/quantity}" type="Number"/>
+                <Select width="40%" selectedKey="{wmModel>/selectedItem/uom}">
+                    <core:Item key="PC" text="PC - Piece"/>
+                    <core:Item key="KG" text="KG - Kilogram"/>
+                </Select>
+                <Button text="Calculate" enabled="false"/>
+            </HBox>
+
+            <!-- Storage Location -->
+            <Label text="Storage Location:" required="true"/>
+            <Input value="{wmModel>/selectedItem/storageLocation}" showValueHelp="true" valueHelpRequest=".onStorageLocationHelp"/>
+
+            <!-- Posted By -->
+            <Label text="Posted By:"/>
+            <Input value="{wmModel>/selectedItem/postedBy}" editable="false"/>
+
+            <!-- Posting Date Time -->
+            <Label text="Posting Date Time:" required="true"/>
+            <DateTimePicker value="{wmModel>/selectedItem/postingDateTime}" editable="true"/>
+
+            <!-- Comments -->
+            <Label text="Comments:"/>
+            <TextArea value="{wmModel>/selectedItem/comments}" rows="3"/>
+        </f:SimpleForm>
+
+        <beginButton>
+            <Button text="Confirm" type="Emphasized" press=".onDialogConfirm"/>
+        </beginButton>
+        <endButton>
+            <Button text="Cancel" press=".onCloseDialog"/>
+        </endButton>
+    </Dialog>
+</core:FragmentDefinition>

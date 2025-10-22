@@ -2,12 +2,16 @@ sap.ui.define([
     'jquery.sap.global',
     "sap/dm/dme/podfoundation/controller/PluginViewController",
     "sap/ui/model/json/JSONModel",
-    "sap/m/MessageBox"
-], function (jQuery, PluginViewController, JSONModel, MessageBox) {
+    "sap/ui/core/Fragment",
+    "sap/m/MessageBox",
+    "altea/dmc/plugin/testPlugin/testPlugin/model/formatter"
+], function (jQuery, PluginViewController, JSONModel, Fragment, MessageBox, formatter) {
     "use strict";
 
     let oController;
     return PluginViewController.extend("altea.dmc.plugin.testPlugin.testPlugin.controller.MainView", {
+        formatter: formatter,
+
         onInit: function () {
             PluginViewController.prototype.onInit.apply(this, arguments);
 
@@ -23,7 +27,7 @@ sap.ui.define([
             this.getView().byId("headerTitle").setText(this.getConfiguration().title);
 
             // creo il modello di appoggio per il plugin
-            let jsonModelWM = new JSONModel({ pallet: 0, scatola: 0, palletscatola: 0, palletBusy: true, scatolaBusy: true, palletscatolaBusy: true });
+            let jsonModelWM = new JSONModel({ pallet: 0, scatola: 0, palletscatola: 0, palletBusy: true, scatolaBusy: true, palletscatolaBusy: true, lineItems: []});
             this.getView().setModel(jsonModelWM, "wmModel");
 
             // carico i dati del WM dopo il caricamento effettivo del plugin
@@ -33,6 +37,7 @@ sap.ui.define([
             this.interceptGoodsReceiptDialog();
         },
 
+        // TO REMOVE?
         interceptGoodsReceiptDialog: function () {
             const originalInit = sap.dm.dme.inventoryplugins.goodsReceiptPlugin.controller.PluginView.prototype.GRPostController.onInitGoodsReceiptDialog;
 
@@ -48,17 +53,6 @@ sap.ui.define([
 
                 // dopo
                 oModel.setProperty("/quantity/value", oController.getView().getModel("wmModel").getProperty("/pallet"));
-
-                // debugger;
-                // sap.ui.getCore().byId('__label14').setVisible(false);
-                // // sap.ui.getCore().byId('GOODSRECEIPTView--plugincontainer8JOCN08Q---goodsReceiptPlugin--batchNumberFilter').setVisible(false)
-                // this.findControlByRegex("/^GOODSRECEIPTView--plugincontainer.*---goodsReceiptPlugin--batchNumberFilter$/").setVisible(false);
-
-                // // set Quantity/Unit field in read only mode
-                // // sap.ui.getCore().byId('GOODSRECEIPTView--plugincontainer8JOCN08Q---goodsReceiptPlugin--quantity').setEditable(false);
-                // // sap.ui.getCore().byId('GOODSRECEIPTView--plugincontainer8JOCN08Q---goodsReceiptPlugin--uom').setEnabled(false);
-                // this.findControlByRegex("/^GOODSRECEIPTView--plugincontainer.*---goodsReceiptPlugin--quantity$/").setVisible(false);
-                // this.findControlByRegex("/^GOODSRECEIPTView--plugincontainer.*---goodsReceiptPlugin--uom$/").setVisible(false);
             };
         },
 
@@ -167,11 +161,22 @@ sap.ui.define([
                 }.bind(this)
             });
 
+            // set table data
+            const orderData = this.getPodSelectionModel().selectedOrderData;
+            var items = [{
+                material: orderData.material.material,
+                description: orderData.material.description,
+                postedQuantityDisplay: Number(orderData.completedQty) + ' of ' + Number(orderData.plannedQty) + ' ' + orderData.baseCommercialUom,
+                postedQuantityPercent: Number(orderData.completedQty)
+            }];
+            that.getView().getModel("wmModel").setProperty("/lineItems", items);
+
             // get storage location
             this.getPutawayStorageLocation();
         },
 
-        // {DMC}/order/v1/orders?plant=2310&order=1000084 --> e prelevare "putawayStorageLocation"
+        // TO FIX
+        // get putawayStorageLocation from {DMC}/order/v1/orders?plant=2310&order=1000084
         getPutawayStorageLocation: function () {
             const that = this;
             const podSelectionModel = this.getPodSelectionModel();
@@ -179,8 +184,7 @@ sap.ui.define([
             const order = orderData.order;
             const plant = podSelectionModel.selectedPhaseData.resource.plant;
 
-            const sUrl = "/destination/S4H_ODATA_INTEGRATION/order/v1/" +
-                "orders?plant=" + plant + "&order" + order;
+            const sUrl = `/destination/order/v1/orders?plant=${encodeURIComponent(plant)}&order=${encodeURIComponent(order)}`;
 
             jQuery.ajax({
                 url: sUrl,
@@ -193,35 +197,199 @@ sap.ui.define([
                     if (!!!!oData && !!!!oData.d && !!!!oData.d.results) {
                         console.log("Goods Receipt Summary data:", oData.d.results[0]);
                         // aggiornare wmModel con un singolo item [{}]
-
                         // receivedQuantity => 56
                         // targetQuantity => 140
-                        var items = [{
-                            materialNo: orderData.material.material,
-                            description: orderData.material.description,
-                            storageLocation: oData.d.results[0].putawayStorageLocation,
-                            postedQuantityDisplay: orderData.completedQty + ' of ' + orderData.plannedQty + ' ' + orderData.baseCommercialUom,
-                            postedQuantityPercent: orderData.completedQty
-                        }];
-                        that.getView().getModel("wmModel").setProperty("/lineItems", items);
+                        // var items = [{
+                        //     material: orderData.material.material,
+                        //     description: orderData.material.description,
+                        //     storageLocation: oData.d.results[0].putawayStorageLocation,
+                        //     postedQuantityDisplay: orderData.completedQty + ' of ' + orderData.plannedQty + ' ' + orderData.baseCommercialUom,
+                        //     postedQuantityPercent: orderData.completedQty
+                        // }];
+                        // that.getView().getModel("wmModel").setProperty("/lineItems", items);
+                        var lineItems = that.getView().getModel("wmModel").getProperty("/lineItems");
+                        lineItems[0].storageLocation = oData.d.results[0].putawayStorageLocation;
                     }
                 },
                 error: function (err) {
                     console.error("Errore nel recupero dati GR summary:", err);
-                    sap.m.MessageBox.error("Errore nel recupero dati Goods Receipt");
+                    // sap.m.MessageBox.error("Errore nel recupero dati Goods Receipt");
                 }
             });
         },
 
-        // TODO show history table from fragment getting data from
-        // https://api.sap.com/api/sapdme_quantityConfirmation/path/get_quantityConfirmation_v1_postingHistory
-        onShowPostings: function(evt){
+        // show history table from fragment getting data from https://api.sap.com/api/sapdme_quantityConfirmation/path/get_quantityConfirmation_v1_postingHistory
+        onShowPostings: function () {
+            debugger;
+            const that = this;
 
+            // Se il dialog non è ancora stato creato, lo carico
+            if (!this._oPostingsDialog) {
+                Fragment.load({
+                    name: "altea.dmc.plugin.testPlugin.testPlugin.view.fragments.PostingHistoryDialog", // 🔁 cambia con il tuo namespace
+                    controller: this
+                }).then(function (oDialog) {
+                    that._oPostingsDialog = oDialog;
+                    that.getView().addDependent(oDialog);
+                    oDialog.open();
+
+                    // Mostro subito il dialog e poi carico i dati
+                    that.loadPostingHistory();
+                });
+            } else {
+                this._oPostingsDialog.open();
+
+                // Se già esiste, resetto e ricarico ogni volta che lo apro
+                const oWMModel = this.getView().getModel("wmModel");
+                oWMModel.setProperty("/postingsHistory", []); // reset
+                this.loadPostingHistory();
+            }
         },
 
-        // TODO open dialog and set like  
-        onPostItem: function(evt){
+        // TO FIX
+        loadPostingHistory: function () {
+            const that = this;
+            const oWMModel = that.getView().getModel("wmModel");
+            oWMModel.setProperty("/busyPostings", true); // per eventuale spinner in tabella
 
+            const podSelectionModel = that.getPodSelectionModel();
+            const order = podSelectionModel?.selectedOrderData?.order;
+            const plant = podSelectionModel?.selectedPhaseData?.resource?.plant;
+
+            if (!order || !plant) {
+                sap.m.MessageBox.warning("Order o Plant non disponibili");
+                oWMModel.setProperty("/busyPostings", false);
+                return;
+            }
+
+            const sUrl = "/destination/S4H_ODATA_INTEGRATION/quantityConfirmation/v1/postingHistory" +
+                "?plant=" + encodeURIComponent(plant) +
+                "&order=" + encodeURIComponent(order);
+
+            jQuery.ajax({
+                url: sUrl,
+                method: "GET",
+                headers: {
+                    "Accept": "application/json"
+                },
+                success: function (oData) {
+                    const aResults = oData?.d?.results || oData?.results || [];
+                    oWMModel.setProperty("/postingsHistory", aResults);
+                    oWMModel.setProperty("/busyPostings", false);
+                },
+                error: function (err) {
+                    console.error("Errore nel recupero posting history:", err);
+                    oWMModel.setProperty("/busyPostings", false);
+                    // sap.m.MessageBox.error("Errore nel recupero dati di posting");
+                }
+            });
+        },
+
+        onCloseDialog: function(evt){
+            evt.getSource().getParent().close();
+        },
+
+        // open the dialog
+        onPostItem: function (oEvent) {
+            debugger;
+            const oView = this.getView();
+            const oSource = oEvent.getSource();
+            const oContext = oSource.getBindingContext("wmModel") || oSource.getParent().getBindingContext("wmModel");
+            const oModel = oView.getModel("wmModel");
+
+            // creo selected item come copia del context object 
+            const oSelectedItem = {
+                ...oContext.getObject(),
+                postedBy: this.getUserId(),
+                uom: this.getPodSelectionModel().selectedOrderData.baseCommercialUom,
+                postingDateTime: new Date().toISOString(),
+                comments: "",
+                quantity: oModel.getData().pallet
+            };
+
+            oModel.setProperty("/selectedItem", oSelectedItem);
+
+            if (!this._oGoodsReceiptDialog) {
+                Fragment.load({
+                    name: "altea.dmc.plugin.testPlugin.testPlugin.view.fragments.GoodsReceiptDialog",
+                    controller: this
+                }).then(oDialog => {
+                    this._oGoodsReceiptDialog = oDialog;
+                    oView.addDependent(oDialog);
+                    oDialog.open();
+                });
+            } else {
+                this._oGoodsReceiptDialog.open();
+            }
+        },
+
+        // TODO
+        onDialogConfirm: async function () {
+            debugger;
+            // const oModel = this.getView().getModel("wmModel");
+            // const oData = oModel.getProperty("/selectedItem");
+
+            // if (!oData || !oData.quantity) {
+            //     sap.m.MessageBox.error("Please enter a valid quantity.");
+            //     return;
+            // }
+
+            // // Chiudi il dialog
+            // this._oGoodsReceiptDialog.close();
+
+            // Legge la configurazione del plugin
+            // const bPostToERP = this.getConfiguration().getParameter("postToERP");
+            // if (!bPostToERP) {
+            //     sap.m.MessageToast.show("ERP posting disabled in Configuration.");
+            //     return;
+            // }
+
+            // try {
+            //     sap.ui.core.BusyIndicator.show(0);
+
+            //     // ERP Goods Receipt
+            //     const erpResponse = await $.ajax({
+            //         url: "/sapdme/inventory-ms/erpGoodsReceipts",
+            //         method: "POST",
+            //         contentType: "application/json",
+            //         data: JSON.stringify({
+            //             plant: oData.plant,
+            //             order: oData.order,
+            //             material: oData.material,
+            //             quantity: oData.quantity,
+            //             uom: oData.uom,
+            //             storageLocation: oData.storageLocation,
+            //             postedBy: oData.postedBy,
+            //             comments: oData.comments
+            //         })
+            //     });
+
+            //     console.log("ERP Goods Receipt OK:", erpResponse);
+
+            //     // Quantity Confirmation
+            //     const qtyResponse = await $.ajax({
+            //         url: "/sapdme/quantity-confirmation-ms/quantityConfirmations",
+            //         method: "POST",
+            //         contentType: "application/json",
+            //         data: JSON.stringify({
+            //             order: oData.order,
+            //             sfc: oData.sfc || "",
+            //             quantity: oData.quantity,
+            //             uom: oData.uom,
+            //             postedBy: oData.postedBy
+            //         })
+            //     });
+
+            //     console.log("Quantity Confirmation OK:", qtyResponse);
+
+            //     sap.m.MessageBox.success("Goods Receipt and Quantity Confirmation posted successfully.");
+
+            // } catch (err) {
+            //     console.error("Error posting to ERP or Quantity Confirmation:", err);
+            //     sap.m.MessageBox.error("Error during posting to ERP or Quantity Confirmation.");
+            // } finally {
+            //     sap.ui.core.BusyIndicator.hide();
+            // }
         },
 
         onBeforeRenderingPlugin: function () {
@@ -238,21 +406,6 @@ sap.ui.define([
 
             // this.configureGoodsReceiptTable();
         },
-
-        // findControlByRegex: function(vPattern) {
-        //     const regex = vPattern instanceof RegExp ? vPattern : new RegExp(vPattern);
-        //     const aControls = Object.values(sap.ui.getCore().mElements);
-        //     return aControls.find(ctrl => regex.test(ctrl.getId())) || null;
-        // },
-
-        // configureGoodsReceiptTable: function () {
-        //     debugger;
-        //     // sap.ui.getCore().byId("GOODSRECEIPTView--plugincontainer8JOCN08Q---goodsReceiptPlugin--grList").getColumns()[0].setVisible(false);
-        //     // sap.ui.getCore().byId("GOODSRECEIPTView--plugincontainer8JOCN08Q---goodsReceiptPlugin--grList").getColumns()[3].setVisible(false);
-        //     var table = this.findControlByRegex("/^GOODSRECEIPTView--plugincontainer.*---goodsReceiptPlugin--grList$/");
-        //     table.getColumns()[0].setVisible(false);
-        //     table.getColumns()[3].setVisible(false);
-        // },
 
         _SummaryData: function (sChannelId, sEventId, oData) {
             debugger;
@@ -285,11 +438,9 @@ sap.ui.define([
             return bNotificationsEnabled;
         },
 
-
         getCustomNotificationEvents: function (sTopic) {
             //return ["template"];
         },
-
 
         getNotificationMessageHandler: function (sTopic) {
 
@@ -320,7 +471,6 @@ sap.ui.define([
             }
 
         },
-
 
         onExit: function () {
             PluginViewController.prototype.onExit.apply(this, arguments);

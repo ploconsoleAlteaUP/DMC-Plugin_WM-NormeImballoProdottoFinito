@@ -1,0 +1,54 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+    <Dialog
+        id="postingHistoryDialog"
+        title="View Postings"
+        resizable="true"
+        draggable="true"
+        contentWidth="80%"
+        contentHeight="50%">
+        <VBox class="sapUiSmallMargin">
+            <Table
+                busy="{wmModel>/busyPostings}"
+                items="{wmModel>/postingsHistory}"
+                inset="false"
+                fixedLayout="true">
+                <columns>
+                    <Column><Text text="Material Number"/></Column>
+                    <Column><Text text="Quantity"/></Column>
+                    <Column><Text text="Parallel Quantity"/></Column>
+                    <Column><Text text="Batch ID"/></Column>
+                    <Column><Text text="Storage Location"/></Column>
+                    <Column><Text text="Posted By"/></Column>
+                    <Column><Text text="Status"/></Column>
+                    <Column><Text text="Posting Date Time"/></Column>
+                    <Column><Text text="Creation Date"/></Column>
+                    <Column><Text text="Comments"/></Column>
+                    <Column><Text text="Print"/></Column>
+                </columns>
+                <items>
+                    <ColumnListItem>
+                        <cells>
+                            <Text text="{wmModel>sfc}"/>
+                            <Text text="{wmModel>yieldQuantity}"/>
+                            <Text text="{wmModel>scrapQuantity}"/>
+                            <Text text="{wmModel>batchId}"/>
+                            <Text text="{wmModel>storageLocation}"/>
+                            <Text text="{wmModel>userId}"/>
+                            <Text text="{wmModel>status}"/>
+                            <Text text="{wmModel>postingDateTime}"/>
+                            <Text text="{wmModel>createdDateTime}"/>
+                            <Text text="{wmModel>reasonCodeDescription}"/>
+                            <Button
+                                icon="sap-icon://print"
+                                type="Transparent"
+                                press=".onPrintPosting"/>
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </VBox>
+        <endButton>
+            <Button text="Close" press=".onCloseDialog"/>
+        </endButton>
+    </Dialog>
+</core:FragmentDefinition>
