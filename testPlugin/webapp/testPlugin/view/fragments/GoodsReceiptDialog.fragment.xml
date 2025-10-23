@@ -10,24 +10,24 @@
         <f:SimpleForm
             editable="true"
             layout="ResponsiveGridLayout"
-            labelSpanXL="4"
-            labelSpanL="4"
-            labelSpanM="4"
-            labelSpanS="12"
+            labelSpanXL="3"
+            labelSpanL="3"
+            labelSpanM="3"
+            labelSpanS="3"
             adjustLabelSpan="false"
-            columnsXL="2"
-            columnsL="2"
+            columnsXL="1"
+            columnsL="1"
             columnsM="1"
             singleContainerFullSize="false"
+            class="sapUiSmallMargin sapUiNoContentPadding"
             width="100%">
 
-
             <!-- Material Number -->
-            <Label text="Material Number:" required="true"/>
-            <Input value="{wmModel>/selectedItem/material}" editable="false"/>
+            <Label text="Material Number" required="true"/>
+            <Input value="{wmModel>/selectedItem/material}" editable="false" enabled="false"/>
 
             <!-- Quantity / Unit -->
-            <Label text="Quantity / Unit:" required="true"/>
+            <Label text="Quantity / Unit" required="true"/>
             <HBox>
                 <Input width="50%" value="{wmModel>/selectedItem/quantity}" type="Number"/>
                 <Select width="40%" selectedKey="{wmModel>/selectedItem/uom}">
@@ -38,19 +38,25 @@
             </HBox>
 
             <!-- Storage Location -->
-            <Label text="Storage Location:" required="true"/>
-            <Input value="{wmModel>/selectedItem/storageLocation}" showValueHelp="true" valueHelpRequest=".onStorageLocationHelp"/>
+            <Label text="Storage Location" required="true"/>
+            <Input value="{wmModel>/selectedItem/storageLocation}" editable="false" enabled="false"/>
 
             <!-- Posted By -->
             <Label text="Posted By:"/>
-            <Input value="{wmModel>/selectedItem/postedBy}" editable="false"/>
+            <Input value="{wmModel>/selectedItem/postedBy}" editable="false" enabled="false"/>
 
             <!-- Posting Date Time -->
-            <Label text="Posting Date Time:" required="true"/>
-            <DateTimePicker value="{wmModel>/selectedItem/postingDateTime}" editable="true"/>
+            <Label text="Posting Date Time" required="true"/>
+            <DateTimePicker
+                value="{wmModel>/selectedItem/postingDateTime}"
+                editable="false"
+                valueFormat="yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+                displayFormat="medium"
+                enabled="false"
+            />
 
             <!-- Comments -->
-            <Label text="Comments:"/>
+            <Label text="Comments"/>
             <TextArea value="{wmModel>/selectedItem/comments}" rows="3"/>
         </f:SimpleForm>
 

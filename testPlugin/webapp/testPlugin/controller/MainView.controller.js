@@ -37,7 +37,7 @@ sap.ui.define([
             this.interceptGoodsReceiptDialog();
         },
 
-        // TO REMOVE?
+        // TODO: TO REMOVE?
         interceptGoodsReceiptDialog: function () {
             const originalInit = sap.dm.dme.inventoryplugins.goodsReceiptPlugin.controller.PluginView.prototype.GRPostController.onInitGoodsReceiptDialog;
 
@@ -176,7 +176,6 @@ sap.ui.define([
         },
 
         // TO FIX
-        // get putawayStorageLocation from {DMC}/order/v1/orders?plant=2310&order=1000084
         getPutawayStorageLocation: function () {
             const that = this;
             const podSelectionModel = this.getPodSelectionModel();
@@ -184,8 +183,12 @@ sap.ui.define([
             const order = orderData.order;
             const plant = podSelectionModel.selectedPhaseData.resource.plant;
 
-            const sUrl = `/destination/order/v1/orders?plant=${encodeURIComponent(plant)}&order=${encodeURIComponent(order)}`;
+            // get putawayStorageLocation from https://api.sap.com/api/sapdme_order/path/get_v1_orders
+            const sUrl = "/destination/SAP_DMC_DEFAULT_SERVICE_KEY/order/v1/orders" + 
+                "?plant=" + encodeURIComponent(plant) +
+                "&order=" + encodeURIComponent(order);
 
+            debugger;
             jQuery.ajax({
                 url: sUrl,
                 method: "GET",
@@ -194,8 +197,9 @@ sap.ui.define([
                 },
                 success: function (oData) {
                     debugger;
-                    if (!!!!oData && !!!!oData.d && !!!!oData.d.results) {
-                        console.log("Goods Receipt Summary data:", oData.d.results[0]);
+                    if (oData && oData.putawayStorageLocation) {
+                        console.log("Goods Receipt Summary data:", oData);
+
                         // aggiornare wmModel con un singolo item [{}]
                         // receivedQuantity => 56
                         // targetQuantity => 140
@@ -207,8 +211,13 @@ sap.ui.define([
                         //     postedQuantityPercent: orderData.completedQty
                         // }];
                         // that.getView().getModel("wmModel").setProperty("/lineItems", items);
-                        var lineItems = that.getView().getModel("wmModel").getProperty("/lineItems");
-                        lineItems[0].storageLocation = oData.d.results[0].putawayStorageLocation;
+
+                        // var lineItems = that.getView().getModel("wmModel").getProperty("/lineItems");
+                        // lineItems[0].storageLocation = oData.putawayStorageLocation;
+
+                        let lineItems = wmModel.getProperty("/lineItems") || [];
+                        lineItems[0].storageLocation = oData.putawayStorageLocation;
+                        wmModel.setProperty("/lineItems", lineItems);
                     }
                 },
                 error: function (err) {
@@ -218,7 +227,7 @@ sap.ui.define([
             });
         },
 
-        // show history table from fragment getting data from https://api.sap.com/api/sapdme_quantityConfirmation/path/get_quantityConfirmation_v1_postingHistory
+        // show history table from fragment 
         onShowPostings: function () {
             debugger;
             const that = this;
@@ -247,6 +256,7 @@ sap.ui.define([
         },
 
         // TO FIX
+        // get history data from https://api.sap.com/api/sapdme_quantityConfirmation/path/get_quantityConfirmation_v1_postingHistory
         loadPostingHistory: function () {
             const that = this;
             const oWMModel = that.getView().getModel("wmModel");
@@ -262,10 +272,10 @@ sap.ui.define([
                 return;
             }
 
-            const sUrl = "/destination/S4H_ODATA_INTEGRATION/quantityConfirmation/v1/postingHistory" +
+            const sUrl = "/destination/SAP_DMC_DEFAULT_SERVICE_KEY/quantityConfirmation/v1/postingHistory" +
                 "?plant=" + encodeURIComponent(plant) +
                 "&order=" + encodeURIComponent(order);
-
+            debugger;
             jQuery.ajax({
                 url: sUrl,
                 method: "GET",
@@ -273,8 +283,24 @@ sap.ui.define([
                     "Accept": "application/json"
                 },
                 success: function (oData) {
-                    const aResults = oData?.d?.results || oData?.results || [];
-                    oWMModel.setProperty("/postingsHistory", aResults);
+                    const aResults = Array.isArray(oData?.content) ? oData.content : [];
+
+                    // date format
+                    const oDateFormat = sap.ui.core.format.DateFormat.getDateTimeInstance({
+                        style: "medium",
+                        UTC: true
+                    });
+                    const aFormatted = aResults.map(item => ({
+                        ...item,
+                        postingDateTimeDisplay: item.postingDateTime
+                            ? oDateFormat.format(new Date(item.postingDateTime))
+                            : "",
+                        createdDateTimeDisplay: item.createdDateTime
+                            ? oDateFormat.format(new Date(item.createdDateTime))
+                            : ""
+                    }));
+
+                    oWMModel.setProperty("/postingsHistory", aFormatted);
                     oWMModel.setProperty("/busyPostings", false);
                 },
                 error: function (err) {
@@ -323,73 +349,109 @@ sap.ui.define([
             }
         },
 
-        // TODO
         onDialogConfirm: async function () {
-            debugger;
-            // const oModel = this.getView().getModel("wmModel");
-            // const oData = oModel.getProperty("/selectedItem");
+            const oView = this.getView();
+            const oModel = oView.getModel("wmModel");
+            const oData = oModel.getProperty("/selectedItem");
 
-            // if (!oData || !oData.quantity) {
-            //     sap.m.MessageBox.error("Please enter a valid quantity.");
-            //     return;
-            // }
+            // Data validation ?
+            if (!oData || !oData.quantity || oData.quantity <= 0) {
+                sap.m.MessageBox.error("Please enter a valid quantity.");
+                return;
+            }
 
-            // // Chiudi il dialog
-            // this._oGoodsReceiptDialog.close();
+            // Close dialog
+            if (this._oGoodsReceiptDialog) {
+                this._oGoodsReceiptDialog.close();
+            }
 
-            // Legge la configurazione del plugin
-            // const bPostToERP = this.getConfiguration().getParameter("postToERP");
-            // if (!bPostToERP) {
-            //     sap.m.MessageToast.show("ERP posting disabled in Configuration.");
-            //     return;
-            // }
+            // Show busy indicator
+            sap.ui.core.BusyIndicator.show(0);
 
-            // try {
-            //     sap.ui.core.BusyIndicator.show(0);
+            try {
+                // TO FIX (|| true is only to test)
+                // Get plugin configuration button value
+                const bPostQuantityConfirmation = this.getConfiguration().getParameter("postToERP") || true;
 
-            //     // ERP Goods Receipt
-            //     const erpResponse = await $.ajax({
-            //         url: "/sapdme/inventory-ms/erpGoodsReceipts",
-            //         method: "POST",
-            //         contentType: "application/json",
-            //         data: JSON.stringify({
-            //             plant: oData.plant,
-            //             order: oData.order,
-            //             material: oData.material,
-            //             quantity: oData.quantity,
-            //             uom: oData.uom,
-            //             storageLocation: oData.storageLocation,
-            //             postedBy: oData.postedBy,
-            //             comments: oData.comments
-            //         })
-            //     });
+                const podSelectionModel = this.getPodSelectionModel();
+                const orderData = podSelectionModel.selectedOrderData;
+                const order = orderData.order;
+                const plant = podSelectionModel.selectedPhaseData.resource.plant;
+                debugger;
 
-            //     console.log("ERP Goods Receipt OK:", erpResponse);
+                // erpGoodsReceipts payload
+                const erpPayload = {
+                    order: order,
+                    plant: plant,
+                    postedBy: oData.postedBy,
+                    lineItems: [
+                        {
+                            comments: oData.comments || "",
+                            material: oData.material,
+                            postingDateTime: oData.postingDateTime,// ISO-8601 yyyy-MM-dd'T'HH:mm:ss.SSS'Z', example: 2022-08-31T23:53:34.123Z
+                            quantity: {
+                                value: oData.quantity,
+                                unitOfMeasure: oData.uom
+                            },
+                            sfc: orderData.sfc,
+                            storageLocation: oData.storageLocation
+                        }
+                    ]
+                };
 
-            //     // Quantity Confirmation
-            //     const qtyResponse = await $.ajax({
-            //         url: "/sapdme/quantity-confirmation-ms/quantityConfirmations",
-            //         method: "POST",
-            //         contentType: "application/json",
-            //         data: JSON.stringify({
-            //             order: oData.order,
-            //             sfc: oData.sfc || "",
-            //             quantity: oData.quantity,
-            //             uom: oData.uom,
-            //             postedBy: oData.postedBy
-            //         })
-            //     });
+                // https://api.sap.com/api/sapdme_inventory/path/postErpGoodsReceiptsUsingPOST_2
+                const sErpUrl = "/destination/SAP_DMC_DEFAULT_SERVICE_KEY/v1/inventory/erpGoodsReceipts";
 
-            //     console.log("Quantity Confirmation OK:", qtyResponse);
+                debugger;
+                const erpResponse = await $.ajax({
+                    url: sErpUrl,
+                    method: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(erpPayload)
+                });
 
-            //     sap.m.MessageBox.success("Goods Receipt and Quantity Confirmation posted successfully.");
+                console.log("ERP Goods Receipt OK:", erpResponse);
 
-            // } catch (err) {
-            //     console.error("Error posting to ERP or Quantity Confirmation:", err);
-            //     sap.m.MessageBox.error("Error during posting to ERP or Quantity Confirmation.");
-            // } finally {
-            //     sap.ui.core.BusyIndicator.hide();
-            // }
+                if (bPostQuantityConfirmation && erpResponse) {
+                    // Quantity Confirmation enabled in Configuration => call https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
+                    const sQtyUrl = "/destination/SAP_DMC_DEFAULT_SERVICE_KEY/v1/quantityConfirmations";
+
+                    // Post_Quantity_Confirmation payload
+                    const qtyConfirmationPayload = {
+                        plant: plant,
+                        shopOrder: order,
+                        sfc: orderData.sfc,
+                        operationActivity: podSelectionModel.operations[0].operation,
+                        workCenter: orderData.workcenter,
+                        yieldQuantity: oData.quantity,
+                        yieldQuantityIsoUnit: oData.uom,
+                        postedBy: oData.postedBy,
+                        storageLocation: oData.storageLocation,
+                        postingDateTime: oData.postingDateTime// ISO-8601 yyyy-MM-dd'T'HH:mm:ss.SSS'Z', example: 2022-08-31T23:53:34.123Z
+                    };
+
+                    debugger;
+                    const qtyResponse = await $.ajax({
+                        url: sQtyUrl,
+                        method: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify(qtyConfirmationPayload)
+                    });
+
+                    console.log("Quantity Confirmation OK:", qtyResponse);
+                    sap.m.MessageBox.success("Goods Receipt and Quantity Confirmation posted successfully.");
+                } else {
+                    sap.m.MessageToast.show("Goods Receipt posted. Quantity Confirmation disabled in Configuration.");
+                }
+
+            } catch (err) {
+                debugger;
+                console.error("Error posting to ERP or Quantity Confirmation:", err);
+                const msg = err.responseJSON?.error?.message || "Error during posting to ERP or Quantity Confirmation.";
+                sap.m.MessageBox.error(msg);
+            } finally {
+                sap.ui.core.BusyIndicator.hide();
+            }
         },
 
         onBeforeRenderingPlugin: function () {

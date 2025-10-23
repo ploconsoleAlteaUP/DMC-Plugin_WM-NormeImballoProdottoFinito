@@ -29,14 +29,21 @@
                     <ColumnListItem>
                         <cells>
                             <Text text="{wmModel>sfc}"/>
-                            <Text text="{wmModel>yieldQuantity}"/>
+                            <!-- Quantity + Commercial Unit -->
+                            <Text text="{
+                                parts: [
+                                    {path: 'wmModel>yieldQuantity'},
+                                    {path: 'wmModel>yieldQuantityCommercialUnit'}
+                                ],
+                                formatter: '.formatQuantityWithUnit'
+                            }"/>
                             <Text text="{wmModel>scrapQuantity}"/>
                             <Text text="{wmModel>batchId}"/>
                             <Text text="{wmModel>storageLocation}"/>
                             <Text text="{wmModel>userId}"/>
                             <Text text="{wmModel>status}"/>
-                            <Text text="{wmModel>postingDateTime}"/>
-                            <Text text="{wmModel>createdDateTime}"/>
+                            <Text text="{wmModel>postingDateTimeDisplay}"/>
+                            <Text text="{wmModel>createdDateTimeDisplay}"/>
                             <Text text="{wmModel>reasonCodeDescription}"/>
                             <Button
                                 icon="sap-icon://print"
