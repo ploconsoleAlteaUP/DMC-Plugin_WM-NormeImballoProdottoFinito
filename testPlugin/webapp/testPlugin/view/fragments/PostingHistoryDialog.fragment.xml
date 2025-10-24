@@ -9,9 +9,15 @@
         <VBox class="sapUiSmallMargin">
             <Table
                 busy="{wmModel>/busyPostings}"
-                items="{wmModel>/postingsHistory}"
+                items="{
+                    path: 'wmModel>/postingsHistory'
+                }"
                 inset="false"
-                fixedLayout="true">
+                fixedLayout="true"
+                growing="true"
+                growingScrollToLoad="true"
+                growingThreshold="20"
+                updateFinished=".onPostingsUpdateFinished">
                 <columns>
                     <Column><Text text="Material Number"/></Column>
                     <Column><Text text="Quantity"/></Column>

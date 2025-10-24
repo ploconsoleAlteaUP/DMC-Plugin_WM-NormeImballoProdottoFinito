@@ -239,83 +239,84 @@ sap.ui.define([
             }
         },
 
-        // TO MANAGE PAGING
-        // get history data from https://api.sap.com/api/sapdme_quantityConfirmation/path/get_quantityConfirmation_v1_postingHistory
-        loadPostingHistory: async function () {
-            const oData = await oController.getPutawayStorageLocation();
-            let inventoryUrl = oController.getInventoryDataSourceUri();
-            let oParameters = {};
-            oParameters.shopOrder = oData.shopOrder;
-            oParameters.batchId = oController.getPodSelectionModel().selectedOrderData.sfc;
-            oParameters.material = oData.material.ref;
-            oParameters.dontShowPrint = false;
-
-            //TODO: Gestione il paging come da standard (fare debug dello standard)
-            oParameters.page = 0;
-            oParameters.size = 20;
-            oParameters.bomComponentSequence = '';
-            let sUrl = inventoryUrl + "ui/order/goodsReceipt/details";
-
-            //let sUrl = `${inventoryUrl}ui/order/goodsReceipt/details?shopOrder=${oData.shopOrder}&batchId=${oController.getPodSelectionModel().selectedOrderData.sfc}&material=${oData.material.ref}&dontShowPrint=false&page=0&size=20&bomComponentSequence=`
-            //let sUrl2 = `${inventoryUrl}ui/order/goodsReceipt/details?shopOrder=${oData.shopOrder}&batchId=${encodeURIComponent(oController.getPodSelectionModel().selectedOrderData.sfc)}&material=${oData.material.ref}&dontShowPrint=false&page=0&size=20&bomComponentSequence=`
-
-            // AjaxUtil.get(sUrl, oParameters, function (oResponseData) {
-            //     //TODO gestire qui dentro la risposta
-            //     // la list è in oResponseData.details.content
-
-            //     /*that.postingsList = oResponseData;
-            //     that.postingsList.dontShowPrint = oParameters.dontShowPrint;
-            //     let oTableModel = mainController.byId("postingsTable").getModel("postingsModel");
-            //     if (!oTableModel) {
-            //         oTableModel = new JSONModel();
-            //     }
-            //     if (that.oPageable.page === 0) {
-            //         that._buidPostingCustomFieldColumns(oResponseData.details.content);
-            //         mainController.byId("postingsTable").setModel(that._updateGRPostingTableModel(oTableModel, that.postingsList), "postingsModel");
-            //     } else {
-            //         that._updateGRPostingTableModel(oTableModel, that.postingsList);
-            //     }
-            //     that._updateGRPostingsTableGrowing(oTableModel.totalPages);
-            //     that.oPostingsModel = new JSONModel();
-            //     that.oPostingsModel.setSizeLimit(that.postingsList.details.length);
-            //     that.oPostingsModel.setData(mainController.byId("postingsTable").getModel("postingsModel").getData());
-            //     mainController.byId("postingsTable").setBusy(false);*/
-            // }, function (oError, sHttpErrorMessage) {
-            //     /*let err = oError ? oError.error.message : sHttpErrorMessage;
-            //     mainController.showErrorMessage(err, true, true);
-            //     that.postingsList = {};
-            //     mainController.byId("postingsTable").setBusy(false);*/
-            // });
-
+        loadPostingHistory: async function (iPage = 0) {
             const oWMModel = this.getView().getModel("wmModel");
-            oWMModel.setProperty("/busyPostings", true); // per eventuale spinner in tabella
 
-            AjaxUtil.get(sUrl, oParameters, function (oResponseData) {
-                debugger;
-                const details = oResponseData?.details;
-                const aResults = details?.content || [];
+            // Evita doppie chiamate se è già in corso un caricamento
+            if (oWMModel.getProperty("/busyPostings")) {
+                return;
+            }
 
-                // date format
-                const oDateFormat = sap.ui.core.format.DateFormat.getDateTimeInstance({
-                    style: "medium",
-                    UTC: true
-                });
-                const material = oResponseData.material;
-                const aFormatted = aResults.map(item => ({
-                    ...item,
-                    material: material,
-                    postingDateTimeDisplay: item.dateTime? oDateFormat.format(new Date(item.dateTime)) : "",
-                    createdDateTimeDisplay: item.createdDateTime? oDateFormat.format(new Date(item.createdDateTime)) : ""
-                }));
+            oWMModel.setProperty("/busyPostings", true);
 
-                oWMModel.setProperty("/postingsHistory", aFormatted);
-                oWMModel.setProperty("/busyPostings", false);
+            try {
+                const oData = await oController.getPutawayStorageLocation();
+                const sUrl = oController.getInventoryDataSourceUri() + "ui/order/goodsReceipt/details";
+                const oParameters = {
+                    shopOrder: oData.shopOrder,
+                    batchId: oController.getPodSelectionModel().selectedOrderData.sfc,
+                    material: oData.material.ref,
+                    dontShowPrint: false,
+                    page: iPage,
+                    size: 20,
+                    bomComponentSequence: ''
+                };
 
-            }, function (oError, sHttpErrorMessage) {
+                AjaxUtil.get(sUrl, oParameters, (oResponseData) => {
+                    const details = oResponseData?.details;
+                    const aResults = details?.content || [];
+
+                    const oDateFormat = sap.ui.core.format.DateFormat.getDateTimeInstance({
+                        style: "medium",
+                        UTC: true
+                    });
+
+                    const material = oResponseData.material;
+                    const aFormatted = aResults.map(item => ({
+                        ...item,
+                        material,
+                        postingDateTimeDisplay: item.dateTime
+                            ? oDateFormat.format(new Date(item.dateTime))
+                            : "",
+                        createdDateTimeDisplay: item.createdDateTime
+                            ? oDateFormat.format(new Date(item.createdDateTime))
+                            : ""
+                    }));
+
+                    // Merge results (reset if first page)
+                    const aExisting = iPage === 0 ? [] : (oWMModel.getProperty("/postingsHistory") || []);
+                    oWMModel.setProperty("/postingsHistory", [...aExisting, ...aFormatted]);
+
+                    // Save paging info
+                    oWMModel.setProperty("/postingsPage", iPage);
+                    oWMModel.setProperty("/postingsTotalPages", details?.totalPages ?? 1);
+                }, (oError, sHttpErrorMessage) => {
                     console.error("Errore nel recupero posting history:", sHttpErrorMessage);
-                    oWMModel.setProperty("/busyPostings", false);
-                    // sap.m.MessageBox.error("Errore nel recupero dati di posting");
-            });
+                });
+            } catch (err) {
+                console.error("Errore inatteso in loadPostingHistory:", err);
+            } finally {
+                oWMModel.setProperty("/busyPostings", false);
+            }
+        },
+
+        onPostingsUpdateFinished: function (oEvent) {
+            const oWMModel = this.getView().getModel("wmModel");
+            const iPage = oWMModel.getProperty("/postingsPage") || 0;
+            const iTotalPages = oWMModel.getProperty("/postingsTotalPages") || 1;
+            const aItems = oWMModel.getProperty("/postingsHistory") || [];
+
+            // Se siamo all’ultima pagina, non fare nulla
+            if (iPage + 1 >= iTotalPages) {
+                return;
+            }
+
+            // Se la tabella ha già caricato tutti gli elementi visibili (trigger naturale del growing)
+            const oTable = oEvent.getSource();
+            if (aItems.length >= (iPage + 1) * oTable.getGrowingThreshold()) {
+                // Quando l’utente arriva in fondo, carico la pagina successiva
+                this.loadPostingHistory(iPage + 1);
+            }
         },
 
         onCloseDialog: function (evt) {
@@ -324,7 +325,6 @@ sap.ui.define([
 
         // open the dialog
         onPostItem: function (oEvent) {
-            debugger;
             const oView = this.getView();
             const oSource = oEvent.getSource();
             const oContext = oSource.getBindingContext("wmModel") || oSource.getParent().getBindingContext("wmModel");
