@@ -356,17 +356,17 @@ sap.ui.define([
             }
         },
 
-        // TO FIX
+        // TO TEST
         onDialogConfirm: async function () {
             const oView = this.getView();
             const oModel = oView.getModel("wmModel");
             const oData = oModel.getProperty("/selectedItem");
 
             // Data validation ?
-            if (!oData || !oData.quantity || oData.quantity <= 0) {
-                sap.m.MessageBox.error("Please enter a valid quantity.");
-                return;
-            }
+            // if (!oData || !oData.quantity || oData.quantity <= 0) {
+            //     sap.m.MessageBox.error("Please enter a valid quantity.");
+            //     return;
+            // }
 
             // Close dialog
             if (this._oGoodsReceiptDialog) {
@@ -377,86 +377,140 @@ sap.ui.define([
             sap.ui.core.BusyIndicator.show(0);
 
             try {
-                // TO FIX (|| true is only to test)
-                // Get plugin configuration button value
-                const bPostQuantityConfirmation = this.getConfiguration().getParameter("postToERP") || true;
-
                 const podSelectionModel = this.getPodSelectionModel();
                 const orderData = podSelectionModel.selectedOrderData;
                 const order = orderData.order;
-                const plant = (sap.dm.dme.util.PlantSettings).getCurrentPlant(); //podSelectionModel.selectedPhaseData.resource.plant;
+                const plant = (sap.dm.dme.util.PlantSettings).getCurrentPlant();
+                
                 debugger;
+                // https://api.sap.com/api/sapdme_inventory/path/postErpGoodsReceiptsUsingPOST_2
+                // endpoint corretto nel POD runtime => /dme/inventory-ms/order/goodsReceipt
+                const sErpUrl = oController.getInventoryDataSourceUri() + "/order/goodsReceipt";
 
                 // erpGoodsReceipts payload
                 const erpPayload = {
-                    order: order,
-                    plant: plant,
-                    postedBy: oData.postedBy,
+                    orderNumber: order,
+                    triggerPoint: "ORD_POD_GR", // ?
                     lineItems: [
-                        {
+                        {   
+                            // batchNumber: oData.batchNumber || null,
+                            // bomComponentSequence: oData.bomComponentSequence || null,
                             comments: oData.comments || "",
-                            material: oData.material,
-                            postingDateTime: oData.postingDateTime,// ISO-8601 yyyy-MM-dd'T'HH:mm:ss.SSS'Z', example: 2022-08-31T23:53:34.123Z
+                            // customFieldData: oData.customFieldData || null,
+                            // handlingUnitNumber: oData.handlingUnitNumber || null,
+                            material: oData.material, // "G10079A0IML0179"
+                            // materialVersion: oData.materialVersion || "ERP001",
+                            postedBy: oData.postedBy,
+                            postingDateTime: oData.postingDateTime,
                             quantity: {
                                 value: oData.quantity,
                                 unitOfMeasure: oData.uom
                             },
-                            sfc: orderData.sfc,
+                            // quantityToleranceCheck: oData.quantityToleranceCheck ?? true,
+                            sfc: orderData.sfc, 
                             storageLocation: oData.storageLocation
                         }
                     ]
                 };
 
-                // https://api.sap.com/api/sapdme_inventory/path/postErpGoodsReceiptsUsingPOST_2
-                const sErpUrl = "/destination/SAP_DMC_DEFAULT_SERVICE_KEY/v1/inventory/erpGoodsReceipts";
-
-                debugger;
-                const erpResponse = await $.ajax({
-                    url: sErpUrl,
-                    method: "POST",
-                    contentType: "application/json",
-                    data: JSON.stringify(erpPayload)
+                const postErpGoodsReceipts = await new Promise((resolve, reject) => {
+                    AjaxUtil.post(
+                        sErpUrl,
+                        erpPayload,
+                        function (oResponseData) {
+                            console.log("POST Goods Receipt – Success:");
+                            debugger;
+                            // sap.m.MessageToast.show("Goods Receipt creato con successo!");
+                            resolve(oResponseData);
+                        },
+                        function (oError, sHttpErrorMessage) {
+                            console.error("Errore nel POST Goods Receipt:", sHttpErrorMessage, oError);
+                            // sap.m.MessageBox.error("Errore nel POST Goods Receipt: " + sHttpErrorMessage);
+                            reject();
+                        }
+                    );
                 });
+                
+                // Get plugin configuration button postQtyConfirmation value
+                const bPostQtyConfirmation = this.getConfiguration().postQtyConfirmation;
+                debugger;
 
-                console.log("ERP Goods Receipt OK:", erpResponse);
-
-                if (bPostQuantityConfirmation && erpResponse) {
-                    // Quantity Confirmation enabled in Configuration => call https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
-                    const sQtyUrl = "/destination/SAP_DMC_DEFAULT_SERVICE_KEY/v1/quantityConfirmations";
-
-                    // Post_Quantity_Confirmation payload
-                    const qtyConfirmationPayload = {
-                        plant: plant,
-                        shopOrder: order,
-                        sfc: orderData.sfc,
-                        operationActivity: podSelectionModel.operations[0].operation,
-                        workCenter: orderData.workcenter,
-                        yieldQuantity: oData.quantity,
-                        yieldQuantityIsoUnit: oData.uom,
-                        postedBy: oData.postedBy,
-                        storageLocation: oData.storageLocation,
-                        postingDateTime: oData.postingDateTime// ISO-8601 yyyy-MM-dd'T'HH:mm:ss.SSS'Z', example: 2022-08-31T23:53:34.123Z
-                    };
-
-                    debugger;
-                    const qtyResponse = await $.ajax({
-                        url: sQtyUrl,
-                        method: "POST",
-                        contentType: "application/json",
-                        data: JSON.stringify(qtyConfirmationPayload)
+                if (bPostQtyConfirmation) {
+                    postErpGoodsReceipts.then(function(res){
+                        debugger;
+                        this.postQtyConfirmation();
                     });
-
-                    console.log("Quantity Confirmation OK:", qtyResponse);
-                    sap.m.MessageBox.success("Goods Receipt and Quantity Confirmation posted successfully.");
                 } else {
                     sap.m.MessageToast.show("Goods Receipt posted. Quantity Confirmation disabled in Configuration.");
                 }
 
             } catch (err) {
                 debugger;
-                console.error("Error posting to ERP or Quantity Confirmation:", err);
-                const msg = err.responseJSON?.error?.message || "Error during posting to ERP or Quantity Confirmation.";
-                sap.m.MessageBox.error(msg);
+                console.error("Error posting to ERP", err);
+                const msg = err.responseJSON?.error?.message || "Error during posting to ERP.";
+                // sap.m.MessageBox.error(msg);
+            } finally {
+                sap.ui.core.BusyIndicator.hide();
+            }
+        },
+
+        // TO FIX
+        postQtyConfirmation: function(){
+            debugger;
+            try {
+                const podSelectionModel = this.getPodSelectionModel();
+                const orderData = podSelectionModel.selectedOrderData;
+                const order = orderData.order;
+                const plant = (sap.dm.dme.util.PlantSettings).getCurrentPlant();
+                
+                debugger;
+                // https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
+                // endpoint corretto nel POD runtime => /dme/inventory-ms/order/goodsReceipt
+                const sQtyConfUrl = oController.getInventoryDataSourceUri() + "ui/order/quantityConfirmation";
+
+                // Post_Quantity_Confirmation payload
+                const sQtyConfPayload = {
+                    plant: (sap.dm.dme.util.PlantSettings).getCurrentPlant(),
+                    shopOrder: orderData.order,
+                    sfc: orderData.sfc,
+                    operationActivity: podSelectionModel.operations[0].operation, 
+                    workCenter: orderData.workcenter, 
+                    yieldQuantity: oData.quantity,
+                    yieldQuantityIsoUnit: oData.uom,
+                    // scrapQuantity	[...]
+                    // scrapQuantityUnit	[...]
+                    // scrapQuantityIsoUnit	[...]
+                    // reasonCodeKey	[...]
+                    postedBy: oData.postedBy,
+                    // batchNumber	[...]
+                    storageLocation: oData.storageLocation,
+                    postingDateTime: oData.postingDateTime// ISO-8601 yyyy-MM-dd'T'HH:mm:ss.SSS'Z', example: 2022-08-31T23:53:34.123Z
+                    // finalConfirmation	[...]
+                    // checkSchedulingAndOeeRelevant
+                };
+
+                AjaxUtil.post(
+                    sQtyConfUrl,
+                    sQtyConfPayload,
+                    function (oResponseData) {
+                        debugger;
+                        console.log("POST Quantity Confirmation – Success:");
+                        debugger;
+                        // sap.m.MessageToast.show("Goods Receipt creato con successo!");
+                        resolve(oResponseData);
+                    },
+                    function (oError, sHttpErrorMessage) {
+                        console.error("Errore nel POST Quantity Confirmation:", sHttpErrorMessage, oError);
+                        // sap.m.MessageBox.error("Errore nel POST Goods Receipt: " + sHttpErrorMessage);
+                        reject();
+                    }
+                );          
+
+            } catch (err) {
+                debugger;
+                console.error("Error posting quantity confirmation", err);
+                const msg = err.responseJSON?.error?.message || "Error during posting quantity confirmation.";
+                // sap.m.MessageBox.error(msg);
             } finally {
                 sap.ui.core.BusyIndicator.hide();
             }

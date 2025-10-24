@@ -24,6 +24,7 @@ sap.ui.define([
 			this.addSwitch(oPropertyFormContainer, "addQtaPallet", oData);
 			this.addSwitch(oPropertyFormContainer, "addQtaScatola", oData);
 			this.addSwitch(oPropertyFormContainer, "addQtaScatolaPerPallet", oData);
+			this.addSwitch(oPropertyFormContainer, "postQtyConfirmation", oData);
 
             oFormContainer = oPropertyFormContainer;
 		},
@@ -34,8 +35,8 @@ sap.ui.define([
                 "title": "Warehouse Management",
 				"addQtaPallet": true,
 				"addQtaScatola": true,
-				"addQtaScatolaPerPallet": true
-                
+				"addQtaScatolaPerPallet": true,
+                "postQtyConfirmation": true
 			};
 		}
 
