@@ -28,23 +28,29 @@
                 <items>
                     <ColumnListItem>
                         <cells>
-                            <Text text="{wmModel>sfc}"/>
-                            <!-- Quantity + Commercial Unit -->
+                            <Text text="{wmModel>material}"/>
+                            <!-- Quantity + Unit -->
                             <Text text="{
                                 parts: [
-                                    {path: 'wmModel>yieldQuantity'},
-                                    {path: 'wmModel>yieldQuantityCommercialUnit'}
+                                    {path: 'wmModel>quantity/value'},
+                                    {path: 'wmModel>quantity/unitOfMeasure/uom'}
                                 ],
-                                formatter: '.formatQuantityWithUnit'
+                                formatter: '.formatter.formatQuantityWithUnit'
                             }"/>
-                            <Text text="{wmModel>scrapQuantity}"/>
-                            <Text text="{wmModel>batchId}"/>
+                            <Text text="{
+                                parts: [
+                                    {path: 'wmModel>parallelQuantity/value'},
+                                    {path: 'wmModel>parallelQuantity/unitOfMeasure/uom'}
+                                ],
+                                formatter: '.formatter.formatQuantityWithUnit'
+                            }"/>
+                            <Text text="{wmModel>batchNumber}"/>
                             <Text text="{wmModel>storageLocation}"/>
                             <Text text="{wmModel>userId}"/>
-                            <Text text="{wmModel>status}"/>
+                            <Text text="{wmModel>cancellationStatus}"/>
                             <Text text="{wmModel>postingDateTimeDisplay}"/>
                             <Text text="{wmModel>createdDateTimeDisplay}"/>
-                            <Text text="{wmModel>reasonCodeDescription}"/>
+                            <Text text="{wmModel>comments}"/>
                             <Button
                                 icon="sap-icon://print"
                                 type="Transparent"

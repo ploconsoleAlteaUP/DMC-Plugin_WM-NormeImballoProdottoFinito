@@ -3,7 +3,6 @@ sap.ui.define([], function () {
     "use strict";
     return {
         formatQuantityWithUnit: function (quantity, unit) {
-            debugger;
             if (!quantity) return "";
             const formattedQty = parseFloat(quantity).toLocaleString(undefined, {
                 minimumFractionDigits: 3,

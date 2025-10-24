@@ -4,7 +4,7 @@ sap.ui.define([
     "sap/ui/model/json/JSONModel",
     "sap/ui/core/Fragment",
     "sap/m/MessageBox",
-    "altea/dmc/plugin/testPlugin/testPlugin/model/formatter",
+    "../model/formatter",
     "sap/dm/dme/model/AjaxUtil"
 ], function (jQuery, PluginViewController, JSONModel, Fragment, MessageBox, formatter, AjaxUtil) {
     "use strict";
@@ -35,11 +35,11 @@ sap.ui.define([
             this.loadData();
 
             // richiamo la function per intercettare il dialog GoodsReceipt
-            this.interceptGoodsReceiptDialog();
+            // this.interceptGoodsReceiptDialog();
         },
 
-        // TODO: TO REMOVE?
-        interceptGoodsReceiptDialog: function () {
+        // NO LONGER NEEDED
+        /*interceptGoodsReceiptDialog: function () {
             const originalInit = sap.dm.dme.inventoryplugins.goodsReceiptPlugin.controller.PluginView.prototype.GRPostController.onInitGoodsReceiptDialog;
 
             sap.dm.dme.inventoryplugins.goodsReceiptPlugin.controller.PluginView.prototype.GRPostController.onInitGoodsReceiptDialog = function () {
@@ -56,6 +56,7 @@ sap.ui.define([
                 oModel.setProperty("/quantity/value", oController.getView().getModel("wmModel").getProperty("/pallet"));
             };
         },
+        */
 
         loadData: function () {
             const that = this;
@@ -176,22 +177,11 @@ sap.ui.define([
             this.getPutawayStorageLocation();
         },
 
-        // TO FIX
         getPutawayStorageLocation: async function () {
             const sBaseUrl = this.getView().getController().getDemandRestDataSourceUri(),
                 sPlant = (sap.dm.dme.util.PlantSettings).getCurrentPlant(),
                 sOrder = this.getPodSelectionModel().selectedOrderData.order,
                 sUrl = `${sBaseUrl}shopOrders/search/findByPlantAndShopOrder?plant=${sPlant}&shopOrder=${sOrder}`;
-            /*const podSelectionModel = this.getPodSelectionModel();
-            const orderData = podSelectionModel.selectedOrderData;
-            const order = orderData.order;
-            const plant = podSelectionModel.selectedPhaseData.resource.plant;
-
-            // get putawayStorageLocation from https://api.sap.com/api/sapdme_order/path/get_v1_orders
-            const sUrl = "/destination/SAP_DMC_DEFAULT_SERVICE_KEY/order/v1/orders" + 
-                "?plant=" + encodeURIComponent(plant) +
-                "&order=" + encodeURIComponent(order);*/
-
             const oData = await new Promise((resolve, reject) => {
                 jQuery.ajax({
                     url: sUrl,
@@ -204,7 +194,6 @@ sap.ui.define([
                             console.log("Goods Receipt Summary data:", oData);
 
                             let wmModel = oController.getView().getModel("wmModel");
-
                             let lineItems = wmModel.getProperty("/lineItems") || [];
                             lineItems[0].storageLocation = oData.erpPutawayStorageLocation;
                             wmModel.setProperty("/lineItems", lineItems);
@@ -221,12 +210,10 @@ sap.ui.define([
             });
 
             return oData;
-
         },
 
         // show history table from fragment 
         onShowPostings: function () {
-            debugger;
             const that = this;
 
             // Se il dialog non è ancora stato creato, lo carico
@@ -252,18 +239,15 @@ sap.ui.define([
             }
         },
 
-        // TO FIX
+        // TO MANAGE PAGING
         // get history data from https://api.sap.com/api/sapdme_quantityConfirmation/path/get_quantityConfirmation_v1_postingHistory
         loadPostingHistory: async function () {
-
             const oData = await oController.getPutawayStorageLocation();
-
             let inventoryUrl = oController.getInventoryDataSourceUri();
             let oParameters = {};
-            debugger;
             oParameters.shopOrder = oData.shopOrder;
             oParameters.batchId = oController.getPodSelectionModel().selectedOrderData.sfc;
-            oParameters.material = oData.material.ref;//this.getPodSelectionModel().selectedOrderData.material.material;
+            oParameters.material = oData.material.ref;
             oParameters.dontShowPrint = false;
 
             //TODO: Gestione il paging come da standard (fare debug dello standard)
@@ -273,89 +257,64 @@ sap.ui.define([
             let sUrl = inventoryUrl + "ui/order/goodsReceipt/details";
 
             //let sUrl = `${inventoryUrl}ui/order/goodsReceipt/details?shopOrder=${oData.shopOrder}&batchId=${oController.getPodSelectionModel().selectedOrderData.sfc}&material=${oData.material.ref}&dontShowPrint=false&page=0&size=20&bomComponentSequence=`
-
             //let sUrl2 = `${inventoryUrl}ui/order/goodsReceipt/details?shopOrder=${oData.shopOrder}&batchId=${encodeURIComponent(oController.getPodSelectionModel().selectedOrderData.sfc)}&material=${oData.material.ref}&dontShowPrint=false&page=0&size=20&bomComponentSequence=`
 
-            /*const that = this;
-            const oWMModel = that.getView().getModel("wmModel");
+            // AjaxUtil.get(sUrl, oParameters, function (oResponseData) {
+            //     //TODO gestire qui dentro la risposta
+            //     // la list è in oResponseData.details.content
+
+            //     /*that.postingsList = oResponseData;
+            //     that.postingsList.dontShowPrint = oParameters.dontShowPrint;
+            //     let oTableModel = mainController.byId("postingsTable").getModel("postingsModel");
+            //     if (!oTableModel) {
+            //         oTableModel = new JSONModel();
+            //     }
+            //     if (that.oPageable.page === 0) {
+            //         that._buidPostingCustomFieldColumns(oResponseData.details.content);
+            //         mainController.byId("postingsTable").setModel(that._updateGRPostingTableModel(oTableModel, that.postingsList), "postingsModel");
+            //     } else {
+            //         that._updateGRPostingTableModel(oTableModel, that.postingsList);
+            //     }
+            //     that._updateGRPostingsTableGrowing(oTableModel.totalPages);
+            //     that.oPostingsModel = new JSONModel();
+            //     that.oPostingsModel.setSizeLimit(that.postingsList.details.length);
+            //     that.oPostingsModel.setData(mainController.byId("postingsTable").getModel("postingsModel").getData());
+            //     mainController.byId("postingsTable").setBusy(false);*/
+            // }, function (oError, sHttpErrorMessage) {
+            //     /*let err = oError ? oError.error.message : sHttpErrorMessage;
+            //     mainController.showErrorMessage(err, true, true);
+            //     that.postingsList = {};
+            //     mainController.byId("postingsTable").setBusy(false);*/
+            // });
+
+            const oWMModel = this.getView().getModel("wmModel");
             oWMModel.setProperty("/busyPostings", true); // per eventuale spinner in tabella
-
-            const podSelectionModel = that.getPodSelectionModel();
-            const order = podSelectionModel?.selectedOrderData?.order;
-            const plant = podSelectionModel?.selectedPhaseData?.resource?.plant;
-
-            if (!order || !plant) {
-                sap.m.MessageBox.warning("Order o Plant non disponibili");
-                oWMModel.setProperty("/busyPostings", false);
-                return;
-            }
-
-            const sUrl = "/destination/SAP_DMC_DEFAULT_SERVICE_KEY/quantityConfirmation/v1/postingHistory" +
-                "?plant=" + encodeURIComponent(plant) +
-                "&order=" + encodeURIComponent(order);*/
-            debugger;
-            jQuery.ajax({
-                url: sUrl,
-                method: "GET",
-                headers: {
-                    "Accept": "application/json"
-                },
-                //data: oParameters,
-                success: function (oData) {
-                    debugger;
-                    const aResults = Array.isArray(oData?.content) ? oData.content : [];
-
-                    // date format
-                    const oDateFormat = sap.ui.core.format.DateFormat.getDateTimeInstance({
-                        style: "medium",
-                        UTC: true
-                    });
-                    const aFormatted = aResults.map(item => ({
-                        ...item,
-                        postingDateTimeDisplay: item.postingDateTime
-                            ? oDateFormat.format(new Date(item.postingDateTime))
-                            : "",
-                        createdDateTimeDisplay: item.createdDateTime
-                            ? oDateFormat.format(new Date(item.createdDateTime))
-                            : ""
-                    }));
-
-                    oWMModel.setProperty("/postingsHistory", aFormatted);
-                    oWMModel.setProperty("/busyPostings", false);
-                },
-                error: function (err) {
-                    console.error("Errore nel recupero posting history:", err);
-                    oWMModel.setProperty("/busyPostings", false);
-                    // sap.m.MessageBox.error("Errore nel recupero dati di posting");
-                }
-            });
 
             AjaxUtil.get(sUrl, oParameters, function (oResponseData) {
                 debugger;
-                //TODO gestire qui dentro la risposta
-                
-                /*that.postingsList = oResponseData;
-                that.postingsList.dontShowPrint = oParameters.dontShowPrint;
-                let oTableModel = mainController.byId("postingsTable").getModel("postingsModel");
-                if (!oTableModel) {
-                    oTableModel = new JSONModel();
-                }
-                if (that.oPageable.page === 0) {
-                    that._buidPostingCustomFieldColumns(oResponseData.details.content);
-                    mainController.byId("postingsTable").setModel(that._updateGRPostingTableModel(oTableModel, that.postingsList), "postingsModel");
-                } else {
-                    that._updateGRPostingTableModel(oTableModel, that.postingsList);
-                }
-                that._updateGRPostingsTableGrowing(oTableModel.totalPages);
-                that.oPostingsModel = new JSONModel();
-                that.oPostingsModel.setSizeLimit(that.postingsList.details.length);
-                that.oPostingsModel.setData(mainController.byId("postingsTable").getModel("postingsModel").getData());
-                mainController.byId("postingsTable").setBusy(false);*/
+                const details = oResponseData?.details;
+                const aResults = details?.content || [];
+
+                // date format
+                const oDateFormat = sap.ui.core.format.DateFormat.getDateTimeInstance({
+                    style: "medium",
+                    UTC: true
+                });
+                const material = oResponseData.material;
+                const aFormatted = aResults.map(item => ({
+                    ...item,
+                    material: material,
+                    postingDateTimeDisplay: item.dateTime? oDateFormat.format(new Date(item.dateTime)) : "",
+                    createdDateTimeDisplay: item.createdDateTime? oDateFormat.format(new Date(item.createdDateTime)) : ""
+                }));
+
+                oWMModel.setProperty("/postingsHistory", aFormatted);
+                oWMModel.setProperty("/busyPostings", false);
+
             }, function (oError, sHttpErrorMessage) {
-                /*let err = oError ? oError.error.message : sHttpErrorMessage;
-                mainController.showErrorMessage(err, true, true);
-                that.postingsList = {};
-                mainController.byId("postingsTable").setBusy(false);*/
+                    console.error("Errore nel recupero posting history:", sHttpErrorMessage);
+                    oWMModel.setProperty("/busyPostings", false);
+                    // sap.m.MessageBox.error("Errore nel recupero dati di posting");
             });
         },
 
@@ -397,6 +356,7 @@ sap.ui.define([
             }
         },
 
+        // TO FIX
         onDialogConfirm: async function () {
             const oView = this.getView();
             const oModel = oView.getModel("wmModel");
@@ -424,7 +384,7 @@ sap.ui.define([
                 const podSelectionModel = this.getPodSelectionModel();
                 const orderData = podSelectionModel.selectedOrderData;
                 const order = orderData.order;
-                const plant = podSelectionModel.selectedPhaseData.resource.plant;
+                const plant = (sap.dm.dme.util.PlantSettings).getCurrentPlant(); //podSelectionModel.selectedPhaseData.resource.plant;
                 debugger;
 
                 // erpGoodsReceipts payload
@@ -518,7 +478,6 @@ sap.ui.define([
         },
 
         _SummaryData: function (sChannelId, sEventId, oData) {
-            debugger;
             this.loadData();
         },
 
