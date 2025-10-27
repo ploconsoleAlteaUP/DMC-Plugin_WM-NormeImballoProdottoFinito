@@ -68,7 +68,8 @@ sap.ui.define([
             that.getView().getModel("wmModel").setProperty("/palletscatolaBusy", true);
 
             const sFilter = encodeURIComponent(
-                `substringof('${sMaterial}',PackingInstructionNumber)`
+                // `substringof('${sMaterial}',PackingInstructionNumber)`
+                `substringof('${sMaterial}',PackingInstructionNumber) and PackingInstructionIsDeleted eq false`                 
             );
 
             const sExpand = encodeURIComponent(
@@ -85,6 +86,7 @@ sap.ui.define([
                     "Accept": "application/json"
                 },
                 success: function (oData) {
+                    debugger;
                     if (!!!!oData && !!!!oData.d && !!!!oData.d.results) {
 
                         const aData = oData.d.results;
@@ -150,6 +152,9 @@ sap.ui.define([
 
                         // Creo il messaggio
                         MessageBox.error("There are no packaging standards");
+
+                        // inibire la registrazione dei versamenti
+                        that.getView().byId("recordBtn").setEnabled(false);
                     }
                     console.log("API result:", oData);
                     //sap.m.MessageToast.show("Dati caricati correttamente");
@@ -356,18 +361,14 @@ sap.ui.define([
             }
         },
 
-        // TO TEST
-        onDialogConfirm: async function () {
-            const oView = this.getView();
-            const oModel = oView.getModel("wmModel");
-            const oData = oModel.getProperty("/selectedItem");
-
-            // Data validation ?
-            // if (!oData || !oData.quantity || oData.quantity <= 0) {
-            //     sap.m.MessageBox.error("Please enter a valid quantity.");
-            //     return;
-            // }
-
+        // TO FIX
+        /*  1- chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
+            2- chiamare POST postErpGoodsReceiptsUsingPOST_2
+            3- solo se se la postErpGoodsReceiptsUsingPOST_2 va a buon fine chiamare GET Warehouse_Inbound_Delivery_Item a polling per massimo 10 secondi
+            4- quando la Warehouse_Inbound_Delivery_Item va a buon fine eseguire POST Warehouse_Inbound_Delivery_Item per il valore di EWMInboundDelivery appena ricavato 
+               (o eseguirlo in loop se sono stati eccezionalmente trovati più valori) per registrare l’entrata merci su SAP.
+         */ 
+        onDialogConfirm: async function (evt) {
             // Close dialog
             if (this._oGoodsReceiptDialog) {
                 this._oGoodsReceiptDialog.close();
@@ -377,93 +378,52 @@ sap.ui.define([
             sap.ui.core.BusyIndicator.show(0);
 
             try {
-                const podSelectionModel = this.getPodSelectionModel();
-                const orderData = podSelectionModel.selectedOrderData;
-                const order = orderData.order;
-                const plant = (sap.dm.dme.util.PlantSettings).getCurrentPlant();
-                
-                debugger;
-                // https://api.sap.com/api/sapdme_inventory/path/postErpGoodsReceiptsUsingPOST_2
-                // endpoint corretto nel POD runtime => /dme/inventory-ms/order/goodsReceipt
-                const sErpUrl = oController.getInventoryDataSourceUri() + "/order/goodsReceipt";
+                // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
+                this.postQtyConfirmation();
 
-                // erpGoodsReceipts payload
-                const erpPayload = {
-                    orderNumber: order,
-                    triggerPoint: "ORD_POD_GR", // ?
-                    lineItems: [
-                        {   
-                            // batchNumber: oData.batchNumber || null,
-                            // bomComponentSequence: oData.bomComponentSequence || null,
-                            comments: oData.comments || "",
-                            // customFieldData: oData.customFieldData || null,
-                            // handlingUnitNumber: oData.handlingUnitNumber || null,
-                            material: oData.material, // "G10079A0IML0179"
-                            // materialVersion: oData.materialVersion || "ERP001",
-                            postedBy: oData.postedBy,
-                            postingDateTime: oData.postingDateTime,
-                            quantity: {
-                                value: oData.quantity,
-                                unitOfMeasure: oData.uom
-                            },
-                            // quantityToleranceCheck: oData.quantityToleranceCheck ?? true,
-                            sfc: orderData.sfc, 
-                            storageLocation: oData.storageLocation
-                        }
-                    ]
-                };
+                // chiamare POST postErpGoodsReceiptsUsingPOST_2 e attenderne l'esito
+                var res = await this.postErpGoodsReceipts();
 
-                const postErpGoodsReceipts = await new Promise((resolve, reject) => {
-                    AjaxUtil.post(
-                        sErpUrl,
-                        erpPayload,
-                        function (oResponseData) {
-                            console.log("POST Goods Receipt – Success:");
-                            debugger;
-                            // sap.m.MessageToast.show("Goods Receipt creato con successo!");
-                            resolve(oResponseData);
-                        },
-                        function (oError, sHttpErrorMessage) {
-                            console.error("Errore nel POST Goods Receipt:", sHttpErrorMessage, oError);
-                            // sap.m.MessageBox.error("Errore nel POST Goods Receipt: " + sHttpErrorMessage);
-                            reject();
-                        }
-                    );
-                });
-                
-                // Get plugin configuration button postQtyConfirmation value
-                const bPostQtyConfirmation = this.getConfiguration().postQtyConfirmation;
-                debugger;
-
-                if (bPostQtyConfirmation) {
-                    postErpGoodsReceipts.then(function(res){
-                        debugger;
-                        this.postQtyConfirmation();
-                    });
-                } else {
-                    sap.m.MessageToast.show("Goods Receipt posted. Quantity Confirmation disabled in Configuration.");
+                // se la postErpGoodsReceiptsUsingPOST_2 va a buon fine
+                if (res){
+                    debugger;
+                    // chiamare GET Warehouse_Inbound_Delivery_Item a polling per massimo 10 secondi per recuperare EWMInboundDelivery
+                    // this.getWmInboundDeliveryItem()
+                    //     .then((delivery) => {
+                    //         // trovato
+                    //         this.postWmInboundDeliveryItem(delivery);
+                    //     })
+                    //     .catch(() => {
+                    //         // timeout scaduto
+                    //         console.warn("Nessuna EWMInboundDelivery trovata entro 10 secondi");
+                    //     });
                 }
 
             } catch (err) {
                 debugger;
-                console.error("Error posting to ERP", err);
-                const msg = err.responseJSON?.error?.message || "Error during posting to ERP.";
+                console.error("Error on dialog confirm", err);
                 // sap.m.MessageBox.error(msg);
             } finally {
                 sap.ui.core.BusyIndicator.hide();
             }
         },
 
-        // TO FIX
+        // TO TEST
+        // se switch 'postQtyConfirmation' è ON chiama https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
         postQtyConfirmation: function(){
-            debugger;
             try {
+                debugger;
+                // Get plugin configuration switch postQtyConfirmation value
+                const bPostQtyConfirmation = this.getConfiguration().postQtyConfirmation;
+
+                if (!bPostQtyConfirmation) {
+                    sap.m.MessageToast.show("Goods Receipt posted. Quantity Confirmation disabled in Configuration.");
+                    return;
+                } 
+                
                 const podSelectionModel = this.getPodSelectionModel();
                 const orderData = podSelectionModel.selectedOrderData;
-                const order = orderData.order;
-                const plant = (sap.dm.dme.util.PlantSettings).getCurrentPlant();
                 
-                debugger;
                 // https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
                 // endpoint corretto nel POD runtime => /dme/inventory-ms/order/goodsReceipt
                 const sQtyConfUrl = oController.getInventoryDataSourceUri() + "ui/order/quantityConfirmation";
@@ -489,17 +449,18 @@ sap.ui.define([
                     // checkSchedulingAndOeeRelevant
                 };
 
+                debugger;
                 AjaxUtil.post(
                     sQtyConfUrl,
                     sQtyConfPayload,
                     function (oResponseData) {
                         debugger;
                         console.log("POST Quantity Confirmation – Success:");
-                        debugger;
                         // sap.m.MessageToast.show("Goods Receipt creato con successo!");
                         resolve(oResponseData);
                     },
                     function (oError, sHttpErrorMessage) {
+                        debugger;
                         console.error("Errore nel POST Quantity Confirmation:", sHttpErrorMessage, oError);
                         // sap.m.MessageBox.error("Errore nel POST Goods Receipt: " + sHttpErrorMessage);
                         reject();
@@ -509,11 +470,188 @@ sap.ui.define([
             } catch (err) {
                 debugger;
                 console.error("Error posting quantity confirmation", err);
-                const msg = err.responseJSON?.error?.message || "Error during posting quantity confirmation.";
                 // sap.m.MessageBox.error(msg);
             } finally {
                 sap.ui.core.BusyIndicator.hide();
             }
+        },
+
+        // TO TEST
+        // chiama https://api.sap.com/api/sapdme_inventory/path/postErpGoodsReceiptsUsingPOST_2
+        postErpGoodsReceipts: async function(){
+            debugger;
+            const oView = this.getView();
+            const oModel = oView.getModel("wmModel");
+            const oData = oModel.getProperty("/selectedItem");
+            const podSelectionModel = this.getPodSelectionModel();
+            const orderData = podSelectionModel.selectedOrderData;
+            const order = orderData.order;
+            
+            debugger;
+            // endpoint corretto nel POD runtime => /dme/inventory-ms/order/goodsReceipt
+            const sErpUrl = oController.getInventoryDataSourceUri() + "order/goodsReceipt";
+
+            // erpGoodsReceipts payload
+            const erpPayload = {
+                orderNumber: order,
+                triggerPoint: "ORD_POD_GR", // ?
+                lineItems: [{   
+                    // batchNumber: oData.batchNumber || null,
+                    // bomComponentSequence: oData.bomComponentSequence || null,
+                    comments: oData.comments || "",
+                    // customFieldData: oData.customFieldData || null,
+                    // handlingUnitNumber: oData.handlingUnitNumber || null,
+                    material: oData.material, // "G10079A0IML0179"
+                    // materialVersion: oData.materialVersion || "ERP001",
+                    postedBy: oData.postedBy,
+                    postingDateTime: oData.postingDateTime,
+                    quantity: {
+                        value: oData.quantity,
+                        unitOfMeasure: {
+                            commercialUnitOfMeasure: oData.uom
+                        }
+                    },
+                    // quantityToleranceCheck: oData.quantityToleranceCheck ?? true,
+                    sfc: orderData.sfc, 
+                    storageLocation: oData.storageLocation
+                }]
+            };
+
+            return await new Promise((resolve, reject) => {
+                AjaxUtil.post(
+                    sErpUrl,
+                    erpPayload,
+                    function (oResponseData) {
+                        console.log("POST Goods Receipt – Success:");
+                        // sap.m.MessageToast.show("Goods Receipt creato con successo!");
+                        resolve(oResponseData);
+                    },
+                    function (oError, sHttpErrorMessage) {
+                        console.error("Errore nel POST Goods Receipt:", sHttpErrorMessage, oError);
+                        // sap.m.MessageBox.error("Errore nel POST Goods Receipt: " + sHttpErrorMessage);
+                        reject();
+                    }
+                );
+            });         
+        },
+
+        // TO FIX
+        // chiama Warehouse_Inbound_Delivery_Item a polling per massimo 10 secondi per recuperare EWMInboundDelivery 
+        // - EWMWarehouse => valore da parametrizzare o da ricavare all’interno della versione di produzione 
+        // - ManufacturingOrder => numero ordine di produzione a fronte di cui si sta versando 
+        // - GoodsReceiptStatus => valore fisso '1 
+        getWmInboundDeliveryItem: function () {
+            const MAX_DURATION = 10000; // 10 secondi
+            debugger;
+            const sUrl = oController.getInventoryDataSourceUri() + "warehouse/inboundDeliveryItem";
+
+            const oView = this.getView();
+            const oModel = oView.getModel("wmModel");
+            const podSelectionModel = this.getPodSelectionModel();
+            const orderData = podSelectionModel.selectedOrderData;
+
+            // const sParams = `?EWMWarehouse=${encodeURIComponent((sap.dm.dme.util.PlantSettings).getCurrentPlant())}&ManufacturingOrder=${encodeURIComponent(orderData.order)}&GoodsReceiptStatus=1`;
+
+            return new Promise((resolve, reject) => {
+                let stopped = false;
+
+                // imposta un timer di 10 secondi alla fine dei quali rifiutare la promise
+                const timeoutId = setTimeout(() => {
+                    stopped = true;
+                    console.warn("Timeout: nessun EWMInboundDelivery trovato entro 10 secondi.");
+                    reject(); // rifiuta la promise
+                }, MAX_DURATION);
+
+                const poll = () => {
+                    if (stopped) return;
+
+                    AjaxUtil.get(
+                        sUrl + sParams,
+                        // success
+                        (response) => {
+                            console.log("Polling response:", response);
+
+                            if (response && response.EWMInboundDelivery) {
+                                console.log("EWMInboundDelivery trovato:", response.EWMInboundDelivery);
+                                stopped = true;
+                                clearTimeout(timeoutId); // ferma il timer per annullare completamente l’esecuzione del setTimeout() associato a quell’id
+                                resolve(response.EWMInboundDelivery); // risolvi con il risultato
+                                return;
+                            }
+
+                            // Se non riceve EWMInboundDelivery, ripetere la GET
+                            if (!stopped) poll();
+                        },
+                        // error
+                        (error, msg) => {
+                            console.warn("Errore nel polling:", msg, error);
+
+                            // Continua finché non scade il tempo
+                            if (!stopped) poll();
+                        }
+                    );
+                };
+
+                poll(); // avvia subito la GET
+            });
+        },
+
+        // TO FIX
+        // chiama Warehouse_Inbound_Delivery_Item per il valore di EWMInboundDelivery appena ricavato per registrare l’entrata merci su SAP per ogni EWMInboundDelivery trovata
+        // N.B: eseguirlo in loop se sono stati eccezionalmente trovati più valori
+        postWmInboundDeliveryItem: async function (EWMInboundDeliveryArray) {
+            // try {
+            //     debugger;
+            //     const podSelectionModel = this.getPodSelectionModel();
+            //     const orderData = podSelectionModel.selectedOrderData;
+
+            //     const sWmInboundDeliveryItemUrl =
+            //         oController.getInventoryDataSourceUri() + "warehouse/inboundDeliveryItem";
+
+            //     // Creo un array di Promise (una per ogni chiamata)
+            //     const aPromises = EWMInboundDeliveryArray.map((delivery) => {
+            //         const wmInboundDeliveryItemPayload = {
+            //             EWMInboundDelivery: delivery,
+            //             plant: (sap.dm.dme.util.PlantSettings).getCurrentPlant(),
+            //             shopOrder: orderData.order,
+            //             sfc: orderData.sfc,
+            //             postedBy: sap.ushell.Container.getUser().getId(),
+            //             postingDateTime: new Date().toISOString(),
+            //         };
+
+            //         return new Promise((resolve, reject) => {
+            //             AjaxUtil.post(
+            //                 sWmInboundDeliveryItemUrl,
+            //                 wmInboundDeliveryItemPayload,
+            //                 function (oResponseData) {
+            //                     console.log(`POST Warehouse Inbound Delivery Item per ${delivery} – Success:`, oResponseData);
+            //                     resolve(oResponseData);
+            //                 },
+            //                 function (oError, sHttpErrorMessage) {
+            //                     console.error(`Errore nel POST Warehouse Inbound Delivery Item per ${delivery}:`, sHttpErrorMessage, oError);
+            //                     reject(oError);
+            //                 }
+            //             );
+            //         });
+            //     });
+
+            //     // Attendo che tutte le chiamate (in parallelo) si completino
+            //     const results = await Promise.allSettled(aPromises);
+
+            //     // Log dei risultati
+            //     const success = results.filter(r => r.status === "fulfilled").length;
+            //     const failed = results.filter(r => r.status === "rejected").length;
+
+            //     console.log(`POST completate: ${success} OK, ${failed} fallite.`);
+            //     sap.m.MessageToast.show(`POST completate: ${success} OK, ${failed} fallite.`);
+
+            // } catch (err) {
+            //     debugger;
+            //     console.error("Errore generale durante le POST Warehouse Inbound Delivery Item:", err);
+            //     sap.m.MessageBox.error("Errore generale durante le POST Warehouse Inbound Delivery Item.");
+            // } finally {
+            //     sap.ui.core.BusyIndicator.hide();
+            // }
         },
 
         onBeforeRenderingPlugin: function () {

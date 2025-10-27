@@ -37,7 +37,7 @@
                     <!-- Table -->
                     <Table
                         id="itemsTable"
-                        headerText="{= 'Items (' + ( ${wmModel>/lineItems} ? ${wmModel>/lineItems}.length : 0 ) + ')'}"
+                        headerText="{= 'Posizioni (' + ( ${wmModel>/lineItems} ? ${wmModel>/lineItems}.length : 0 ) + ')'}"
                         items="{wmModel>/lineItems}"                        
                         width="100%"
                         inset="false"
@@ -71,11 +71,12 @@
                                     <!-- Buttons -->
                                     <HBox justifyContent="Center" alignItems="Center">
                                         <Button
-                                            text="Postings"
+                                            text="Registrazioni"
                                             press=".onShowPostings"
                                             class="sapUiTinyMarginEnd" />
                                         <Button
-                                            text="Post"
+                                            id="recordBtn"
+                                            text="Registra"
                                             type="Emphasized"
                                             press=".onPostItem" />
                                     </HBox>
