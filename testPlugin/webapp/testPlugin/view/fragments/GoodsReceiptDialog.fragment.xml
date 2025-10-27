@@ -42,7 +42,7 @@
             <Input value="{wmModel>/selectedItem/storageLocation}" editable="false" enabled="false"/>
 
             <!-- Posted By -->
-            <Label text="Posted By:"/>
+            <Label text="Posted By"/>
             <Input value="{wmModel>/selectedItem/postedBy}" editable="false" enabled="false"/>
 
             <!-- Posting Date Time -->

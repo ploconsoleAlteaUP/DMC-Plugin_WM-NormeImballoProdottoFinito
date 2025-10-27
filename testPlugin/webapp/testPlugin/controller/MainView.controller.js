@@ -86,7 +86,6 @@ sap.ui.define([
                     "Accept": "application/json"
                 },
                 success: function (oData) {
-                    debugger;
                     if (!!!!oData && !!!!oData.d && !!!!oData.d.results) {
 
                         const aData = oData.d.results;
@@ -201,6 +200,7 @@ sap.ui.define([
                             let wmModel = oController.getView().getModel("wmModel");
                             let lineItems = wmModel.getProperty("/lineItems") || [];
                             lineItems[0].storageLocation = oData.erpPutawayStorageLocation;
+                            lineItems[0].warehouseNumber = oData.warehouseNumber;
                             wmModel.setProperty("/lineItems", lineItems);
                         }
 
@@ -388,15 +388,14 @@ sap.ui.define([
                 if (res){
                     debugger;
                     // chiamare GET Warehouse_Inbound_Delivery_Item a polling per massimo 10 secondi per recuperare EWMInboundDelivery
-                    // this.getWmInboundDeliveryItem()
-                    //     .then((delivery) => {
-                    //         // trovato
-                    //         this.postWmInboundDeliveryItem(delivery);
-                    //     })
-                    //     .catch(() => {
-                    //         // timeout scaduto
-                    //         console.warn("Nessuna EWMInboundDelivery trovata entro 10 secondi");
-                    //     });
+                    this.getWmInboundDeliveryItem()
+                        .then((res) => {
+                            debugger;
+                            this.postWmInboundDeliveryItem(res);
+                        })
+                        .catch(() => {
+                            console.warn("Nessuna EWMInboundDelivery trovata entro 10 secondi");
+                        });
                 }
 
             } catch (err) {
@@ -408,7 +407,6 @@ sap.ui.define([
             }
         },
 
-        // TO TEST
         // se switch 'postQtyConfirmation' è ON chiama https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
         postQtyConfirmation: function(){
             try {
@@ -423,7 +421,10 @@ sap.ui.define([
                 
                 const podSelectionModel = this.getPodSelectionModel();
                 const orderData = podSelectionModel.selectedOrderData;
-                
+                const oView = this.getView();
+                const oModel = oView.getModel("wmModel");
+                const oData = oModel.getProperty("/selectedItem");
+
                 // https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
                 // endpoint corretto nel POD runtime => /dme/inventory-ms/order/goodsReceipt
                 const sQtyConfUrl = oController.getInventoryDataSourceUri() + "ui/order/quantityConfirmation";
@@ -476,7 +477,8 @@ sap.ui.define([
             }
         },
 
-        // TO TEST
+        // TO FIX 
+        // The batchNumber field is required since material G10079A0IML0179 is batch managed e triggerPoint?
         // chiama https://api.sap.com/api/sapdme_inventory/path/postErpGoodsReceiptsUsingPOST_2
         postErpGoodsReceipts: async function(){
             debugger;
@@ -489,14 +491,15 @@ sap.ui.define([
             
             debugger;
             // endpoint corretto nel POD runtime => /dme/inventory-ms/order/goodsReceipt
-            const sErpUrl = oController.getInventoryDataSourceUri() + "order/goodsReceipt";
+            // const sErpUrl = oController.getInventoryDataSourceUri() + "order/goodsReceipt";
+            const sErpUrl = oController.getInventoryDataSourceUri() + "erpGoodsReceipts";
 
             // erpGoodsReceipts payload
             const erpPayload = {
                 orderNumber: order,
                 triggerPoint: "ORD_POD_GR", // ?
                 lineItems: [{   
-                    // batchNumber: oData.batchNumber || null,
+                    batchNumber: oData.batchNumber || null,
                     // bomComponentSequence: oData.bomComponentSequence || null,
                     comments: oData.comments || "",
                     // customFieldData: oData.customFieldData || null,
@@ -535,22 +538,24 @@ sap.ui.define([
             });         
         },
 
-        // TO FIX
+        // TO TEST
         // chiama Warehouse_Inbound_Delivery_Item a polling per massimo 10 secondi per recuperare EWMInboundDelivery 
         // - EWMWarehouse => valore da parametrizzare o da ricavare all’interno della versione di produzione 
-        // - ManufacturingOrder => numero ordine di produzione a fronte di cui si sta versando 
-        // - GoodsReceiptStatus => valore fisso '1 
         getWmInboundDeliveryItem: function () {
             const MAX_DURATION = 10000; // 10 secondi
-            debugger;
-            const sUrl = oController.getInventoryDataSourceUri() + "warehouse/inboundDeliveryItem";
+            // const sUrl = oController.getInventoryDataSourceUri() + "warehouse/inboundDeliveryItem";
+            const sUrl = "/dme/warehouse-inbound-delivery-ms/warehouseInboundDeliveryItem";
 
             const oView = this.getView();
             const oModel = oView.getModel("wmModel");
+            const oData = oModel.getProperty("/lineItems");
             const podSelectionModel = this.getPodSelectionModel();
             const orderData = podSelectionModel.selectedOrderData;
+            debugger;
 
-            // const sParams = `?EWMWarehouse=${encodeURIComponent((sap.dm.dme.util.PlantSettings).getCurrentPlant())}&ManufacturingOrder=${encodeURIComponent(orderData.order)}&GoodsReceiptStatus=1`;
+            const sParams = `?EWMWarehouse=${encodeURIComponent(oData[0].warehouseNumber)}`
+                + `&ManufacturingOrder=${encodeURIComponent(orderData.order)}`
+                + `&GoodsReceiptStatus=1`;
 
             return new Promise((resolve, reject) => {
                 let stopped = false;
@@ -570,12 +575,13 @@ sap.ui.define([
                         // success
                         (response) => {
                             console.log("Polling response:", response);
-
-                            if (response && response.EWMInboundDelivery) {
-                                console.log("EWMInboundDelivery trovato:", response.EWMInboundDelivery);
+                            debugger;
+                            if (response && Array.isArray(response.value) && response.value.length > 0) {
+                                console.log("EWMInboundDelivery trovato:", response.value);
+                                // fermare il timer per annullare completamente l’esecuzione del setTimeout() associato a quell’id
                                 stopped = true;
-                                clearTimeout(timeoutId); // ferma il timer per annullare completamente l’esecuzione del setTimeout() associato a quell’id
-                                resolve(response.EWMInboundDelivery); // risolvi con il risultato
+                                clearTimeout(timeoutId); 
+                                resolve(response.value);
                                 return;
                             }
 
@@ -584,9 +590,10 @@ sap.ui.define([
                         },
                         // error
                         (error, msg) => {
+                            debugger;
                             console.warn("Errore nel polling:", msg, error);
 
-                            // Continua finché non scade il tempo
+                            // Continuare finchè non scade il timer
                             if (!stopped) poll();
                         }
                     );
@@ -600,58 +607,72 @@ sap.ui.define([
         // chiama Warehouse_Inbound_Delivery_Item per il valore di EWMInboundDelivery appena ricavato per registrare l’entrata merci su SAP per ogni EWMInboundDelivery trovata
         // N.B: eseguirlo in loop se sono stati eccezionalmente trovati più valori
         postWmInboundDeliveryItem: async function (EWMInboundDeliveryArray) {
-            // try {
-            //     debugger;
-            //     const podSelectionModel = this.getPodSelectionModel();
-            //     const orderData = podSelectionModel.selectedOrderData;
+            try {
+                debugger;
+                const podSelectionModel = this.getPodSelectionModel();
+                const orderData = podSelectionModel.selectedOrderData;
 
-            //     const sWmInboundDeliveryItemUrl =
-            //         oController.getInventoryDataSourceUri() + "warehouse/inboundDeliveryItem";
+                // const sWmInboundDeliveryItemUrl = oController.getInventoryDataSourceUri() + "warehouse/inboundDeliveryItem";
+                const sWmInboundDeliveryItemUrl = "/dme/warehouse-inbound-delivery-ms/warehouseInboundDeliveryItem";
 
-            //     // Creo un array di Promise (una per ogni chiamata)
-            //     const aPromises = EWMInboundDeliveryArray.map((delivery) => {
-            //         const wmInboundDeliveryItemPayload = {
-            //             EWMInboundDelivery: delivery,
-            //             plant: (sap.dm.dme.util.PlantSettings).getCurrentPlant(),
-            //             shopOrder: orderData.order,
-            //             sfc: orderData.sfc,
-            //             postedBy: sap.ushell.Container.getUser().getId(),
-            //             postingDateTime: new Date().toISOString(),
-            //         };
+                // Crea un array di Promise (una per ogni chiamata POST)
+                const aPromises = EWMInboundDeliveryArray.map((deliveryObj) => {
+                    const wmInboundDeliveryItemPayload = {
+                        EWMInboundDelivery: deliveryObj.EWMInboundDelivery, // documento EWM
+                        EWMInboundDeliveryItem: deliveryObj.EWMInboundDeliveryItem, // item
+                        EWMWarehouse: deliveryObj.EWMWarehouse || "235", // fallback esempio
+                        ManufacturingOrder: deliveryObj.ManufacturingOrder || orderData.order, // numero ordine prod.
+                        GoodsReceiptStatus: "1", // valore fisso come da specifica
+                        plant: sap.dm.dme.util.PlantSettings.getCurrentPlant(),
+                        shopOrder: orderData.order,
+                        sfc: orderData.sfc,
+                        postedBy: sap.ushell.Container.getUser().getId(),
+                        postingDateTime: new Date().toISOString(),
+                    };
 
-            //         return new Promise((resolve, reject) => {
-            //             AjaxUtil.post(
-            //                 sWmInboundDeliveryItemUrl,
-            //                 wmInboundDeliveryItemPayload,
-            //                 function (oResponseData) {
-            //                     console.log(`POST Warehouse Inbound Delivery Item per ${delivery} – Success:`, oResponseData);
-            //                     resolve(oResponseData);
-            //                 },
-            //                 function (oError, sHttpErrorMessage) {
-            //                     console.error(`Errore nel POST Warehouse Inbound Delivery Item per ${delivery}:`, sHttpErrorMessage, oError);
-            //                     reject(oError);
-            //                 }
-            //             );
-            //         });
-            //     });
+                    return new Promise((resolve, reject) => {
+                        AjaxUtil.post(
+                            sWmInboundDeliveryItemUrl,
+                            wmInboundDeliveryItemPayload,
+                            function (oResponseData) {
+                                debugger;
+                                console.log(
+                                    `POST Warehouse Inbound Delivery Item per ${deliveryObj.EWMInboundDelivery}/${deliveryObj.EWMInboundDeliveryItem} – Success:`,
+                                    oResponseData
+                                );
+                                resolve(oResponseData);
+                            },
+                            function (oError, sHttpErrorMessage) {
+                                debugger;
+                                console.error(
+                                    `Errore nel POST Warehouse Inbound Delivery Item per ${deliveryObj.EWMInboundDelivery}/${deliveryObj.EWMInboundDeliveryItem}:`,
+                                    sHttpErrorMessage,
+                                    oError
+                                );
+                                reject(oError);
+                            }
+                        );
+                    });
+                });
 
-            //     // Attendo che tutte le chiamate (in parallelo) si completino
-            //     const results = await Promise.allSettled(aPromises);
+                // Attendo che tutte le chiamate si completino in parallelo
+                const results = await Promise.allSettled(aPromises);
 
-            //     // Log dei risultati
-            //     const success = results.filter(r => r.status === "fulfilled").length;
-            //     const failed = results.filter(r => r.status === "rejected").length;
+                // Analisi risultati
+                debugger;
+                const success = results.filter(r => r.status === "fulfilled").length;
+                const failed = results.filter(r => r.status === "rejected").length;
 
-            //     console.log(`POST completate: ${success} OK, ${failed} fallite.`);
-            //     sap.m.MessageToast.show(`POST completate: ${success} OK, ${failed} fallite.`);
+                console.log(`POST completate: ${success} OK, ${failed} fallite.`);
+                sap.m.MessageToast.show(`POST completate: ${success} OK, ${failed} fallite.`);
 
-            // } catch (err) {
-            //     debugger;
-            //     console.error("Errore generale durante le POST Warehouse Inbound Delivery Item:", err);
-            //     sap.m.MessageBox.error("Errore generale durante le POST Warehouse Inbound Delivery Item.");
-            // } finally {
-            //     sap.ui.core.BusyIndicator.hide();
-            // }
+            } catch (err) {
+                debugger;
+                console.error("Errore generale durante le POST Warehouse Inbound Delivery Item:", err);
+                sap.m.MessageBox.error("Errore generale durante le POST Warehouse Inbound Delivery Item.");
+            } finally {
+                sap.ui.core.BusyIndicator.hide();
+            }
         },
 
         onBeforeRenderingPlugin: function () {
