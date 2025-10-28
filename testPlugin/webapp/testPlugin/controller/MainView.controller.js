@@ -361,7 +361,7 @@ sap.ui.define([
             }
         },
 
-        // TO FIX
+        // TO TEST
         /*  1- chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
             2- chiamare POST postErpGoodsReceiptsUsingPOST_2
             3- solo se se la postErpGoodsReceiptsUsingPOST_2 va a buon fine chiamare GET Warehouse_Inbound_Delivery_Item a polling per massimo 10 secondi
@@ -407,6 +407,8 @@ sap.ui.define([
             }
         },
 
+        // TO TEST
+        // quale microservizio corrisponde a sapdme_quantityConfirmation
         // se switch 'postQtyConfirmation' è ON chiama https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
         postQtyConfirmation: function(){
             try {
@@ -426,8 +428,8 @@ sap.ui.define([
                 const oData = oModel.getProperty("/selectedItem");
 
                 // https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
-                // endpoint corretto nel POD runtime => /dme/inventory-ms/order/goodsReceipt
-                const sQtyConfUrl = oController.getInventoryDataSourceUri() + "ui/order/quantityConfirmation";
+                const sBaseUrl = this.getView().getController().getDemandRestDataSourceUri();
+                const sQtyConfUrl = `${sBaseUrl}quantityConfirmation/v1/confirm`;
 
                 // Post_Quantity_Confirmation payload
                 const sQtyConfPayload = {
@@ -478,7 +480,8 @@ sap.ui.define([
         },
 
         // TO FIX 
-        // The batchNumber field is required since material G10079A0IML0179 is batch managed e triggerPoint?
+        // The batchNumber field is required since material G10079A0IML0179 is batch managed, 
+        // triggerPoint?
         // chiama https://api.sap.com/api/sapdme_inventory/path/postErpGoodsReceiptsUsingPOST_2
         postErpGoodsReceipts: async function(){
             debugger;
@@ -491,8 +494,7 @@ sap.ui.define([
             
             debugger;
             // endpoint corretto nel POD runtime => /dme/inventory-ms/order/goodsReceipt
-            // const sErpUrl = oController.getInventoryDataSourceUri() + "order/goodsReceipt";
-            const sErpUrl = oController.getInventoryDataSourceUri() + "erpGoodsReceipts";
+            const sErpUrl = oController.getInventoryDataSourceUri() + "order/goodsReceipt";
 
             // erpGoodsReceipts payload
             const erpPayload = {
@@ -539,10 +541,11 @@ sap.ui.define([
         },
 
         // TO TEST
-        // chiama Warehouse_Inbound_Delivery_Item a polling per massimo 10 secondi per recuperare EWMInboundDelivery 
+        // chiama https://api.sap.com/api/WAREHOUSEINBOUNDDELIVERY_0001/path/get_WhseInboundDeliveryItem a polling per massimo 10 secondi per recuperare EWMInboundDelivery 
         // - EWMWarehouse => valore da parametrizzare o da ricavare all’interno della versione di produzione 
         getWmInboundDeliveryItem: function () {
             const MAX_DURATION = 10000; // 10 secondi
+            debugger;
             // const sUrl = oController.getInventoryDataSourceUri() + "warehouse/inboundDeliveryItem";
             const sUrl = "/dme/warehouse-inbound-delivery-ms/warehouseInboundDeliveryItem";
 
@@ -604,7 +607,7 @@ sap.ui.define([
         },
 
         // TO FIX
-        // chiama Warehouse_Inbound_Delivery_Item per il valore di EWMInboundDelivery appena ricavato per registrare l’entrata merci su SAP per ogni EWMInboundDelivery trovata
+        // chiama https://api.sap.com/api/WAREHOUSEINBOUNDDELIVERY_0001/path/get_WhseInboundDeliveryItem per il valore di EWMInboundDelivery appena ricavato per registrare l’entrata merci su SAP per ogni EWMInboundDelivery trovata
         // N.B: eseguirlo in loop se sono stati eccezionalmente trovati più valori
         postWmInboundDeliveryItem: async function (EWMInboundDeliveryArray) {
             try {
