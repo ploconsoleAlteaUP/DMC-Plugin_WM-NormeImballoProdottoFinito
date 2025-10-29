@@ -433,7 +433,7 @@ sap.ui.define([
                     operationActivity: podSelectionModel.operations[0].operation, 
                     workCenter: orderData.workcenter, 
                     yieldQuantity: oData.quantity,
-                    yieldQuantityUnit: oData.internalUom,
+                    yieldQuantityUnit: orderData.baseInternalUom,
                     // scrapQuantity	[...]
                     // scrapQuantityUnit	[...]
                     // scrapQuantityIsoUnit	[...]
