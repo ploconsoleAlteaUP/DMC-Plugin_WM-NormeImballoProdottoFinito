@@ -342,7 +342,7 @@ sap.ui.define([
                 uom: this.getPodSelectionModel().selectedOrderData.baseCommercialUom,
                 postingDateTime: new Date().toISOString(),
                 comments: "",
-                quantity: (oModel.getData().pallet).toFixed(2)
+                quantity: oModel.getData().pallet
             };
 
             oModel.setProperty("/selectedItem", oSelectedItem);
@@ -386,11 +386,9 @@ sap.ui.define([
 
                 // se la postErpGoodsReceiptsUsingPOST_2 va a buon fine
                 if (res){
-                    debugger;
                     // chiamare GET Warehouse_Inbound_Delivery_Item a polling per massimo 10 secondi per recuperare EWMInboundDelivery
                     this.getWmInboundDeliveryItem()
                         .then((res) => {
-                            debugger;
                             this.postWmInboundDeliveryItem(res);
                         })
                         .catch(() => {
@@ -406,9 +404,8 @@ sap.ui.define([
             }
         },
 
-        // TO TEST
-        // errore quantityConfirmation.confirmation.notStarted
         // se switch 'postQtyConfirmation' è ON chiama https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
+        // la standard fa https://sap-dmc-test-n3lov8wp.execution.eu20-quality.web.dmc.cloud.sap/sapdmdmepod/~80d9e20e-6f47-44c7-9bcb-36549b837c9b~/dme/production-ms/quantityConfirmation/confirm
         postQtyConfirmation: function(){
             try {
                 // Get plugin configuration switch postQtyConfirmation value
@@ -436,7 +433,7 @@ sap.ui.define([
                     operationActivity: podSelectionModel.operations[0].operation, 
                     workCenter: orderData.workcenter, 
                     yieldQuantity: oData.quantity,
-                    yieldQuantityIsoUnit: oData.uom,
+                    yieldQuantityUnit: oData.internalUom,
                     // scrapQuantity	[...]
                     // scrapQuantityUnit	[...]
                     // scrapQuantityIsoUnit	[...]
@@ -449,7 +446,6 @@ sap.ui.define([
                     // checkSchedulingAndOeeRelevant
                 };
 
-                debugger;
                 AjaxUtil.post(
                     sUrl,
                     payload,
@@ -471,12 +467,11 @@ sap.ui.define([
             }
         },
 
-        // TO FIX 
-        // The batchNumber field is required since material G10079A0IML0179 is batch managed, 
-        // triggerPoint?
+        // TODO batchNumber is only to test, remove it using right data like FG129 material
+        // The batchNumber field is required since material G10079A0IML0179 is batch managed, bisognerebbe usare il materiale FG129 che non è batch managed ma gli mancano altre cose per il flusso 
+        // triggerPoint fisso a "ORD_POD_GR"?
         // chiama https://api.sap.com/api/sapdme_inventory/path/postErpGoodsReceiptsUsingPOST_2
         postErpGoodsReceipts: async function(){
-            debugger;
             const oView = this.getView();
             const oModel = oView.getModel("wmModel");
             const oData = oModel.getProperty("/selectedItem");
@@ -484,17 +479,15 @@ sap.ui.define([
             const orderData = podSelectionModel.selectedOrderData;
             const order = orderData.order;
             
-            debugger;
             const sUrl = oController.getInventoryDataSourceUri() + "order/goodsReceipt";
-            // const sUrl = `/destination/S4H_DMC_API/v1/inventory/erpGoodsReceipts`;
-            // const sUrl = oController.getInventoryDataSourceUri() + "erpGoodsReceipts";           
 
             // erpGoodsReceipts payload
             const payload = {
                 orderNumber: order,
                 triggerPoint: "ORD_POD_GR", // ?
                 lineItems: [{   
-                    batchNumber: oData.batchNumber || null,
+                    // batchNumber is ONLY TO TEST => TO DELETE WITH RIGHT MATERIAL FG129
+                    batchNumber: '000109',
                     // bomComponentSequence: oData.bomComponentSequence || null,
                     comments: oData.comments || "",
                     // customFieldData: oData.customFieldData || null,
@@ -515,13 +508,11 @@ sap.ui.define([
                 }]
             };
 
-            debugger;
             return await new Promise((resolve, reject) => {
                 AjaxUtil.post(
                     sUrl,
                     payload,
                     function (oResponseData) {
-                        debugger;
                         console.log("POST Goods Receipt - Success:");
                         // sap.m.MessageToast.show("Goods Receipt creato con successo!");
                         resolve(oResponseData);
@@ -535,19 +526,18 @@ sap.ui.define([
             });         
         },
 
-        // TO TEST
+        // TO FIX 
+        // S4H_ODATA_INTEGRATION = https://my423501-api.s4hana.cloud.sap/sap/opu/odata/sap, mentre a me serve https://my423501-api.s4hana.cloud.sap/sap/opu/odata4/sap
         // chiama https://api.sap.com/api/WAREHOUSEINBOUNDDELIVERY_0001/path/get_WhseInboundDeliveryItem a polling per massimo 10 secondi per recuperare EWMInboundDelivery 
-        // - EWMWarehouse => valore da parametrizzare o da ricavare all’interno della versione di produzione 
         getWmInboundDeliveryItem: function () {
             const MAX_DURATION = 10000; // 10 secondi
-            const sUrl = `/destination/S4H_DMC_API/WhseInboundDeliveryItem`;
-
             const oView = this.getView();
             const oModel = oView.getModel("wmModel");
             const oData = oModel.getProperty("/lineItems");
             const podSelectionModel = this.getPodSelectionModel();
             const orderData = podSelectionModel.selectedOrderData;
 
+            const sUrl = `/destination/S4H_ODATA_INTEGRATION/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/WhseInboundDeliveryItem`;
             const sParams = `?EWMWarehouse=${encodeURIComponent(oData[0].warehouseNumber)}`
                 + `&ManufacturingOrder=${encodeURIComponent(orderData.order)}`
                 + `&GoodsReceiptStatus=1`;
@@ -555,8 +545,9 @@ sap.ui.define([
             return new Promise((resolve, reject) => {
                 let stopped = false;
 
-                // timeout massimo
+                // Timeout massimo
                 const timeoutId = setTimeout(() => {
+                    debugger;
                     stopped = true;
                     console.warn("Timeout: nessun EWMInboundDelivery trovato entro 10 secondi.");
                     reject();
@@ -573,25 +564,31 @@ sap.ui.define([
                             (response) => {
                                 console.log("Polling response:", response);
 
-                                // Se trova almeno un record -> risolve
                                 if (response?.value?.length > 0) {
                                     stopped = true;
                                     clearTimeout(timeoutId);
                                     resolve(response.value);
                                 } else if (!stopped) {
-                                    poll(); // ripete subito
+                                    // Attendi 300ms prima di ripetere altrimenti il polling entra in un loop troppo veloce e il browser, non avendo ancora rilasciato completamente le connessioni precedenti, finisce per saturare le risorse di rete
+                                    setTimeout(poll, 300); 
                                 }
                             },
                             (error, msg) => {
                                 console.warn("Errore nel polling:", msg, error);
 
-                                // se 404 o simile, continua comunque a pollare finché non scade il timer
-                                if (!stopped) poll();
+                                // Se 404 o simile, continua comunque a pollare dopo 300 ms
+                                if (!stopped) {
+                                    // Attendi 300ms prima di ripetere altrimenti il polling entra in un loop troppo veloce e il browser, non avendo ancora rilasciato completamente le connessioni precedenti, finisce per saturare le risorse di rete
+                                    setTimeout(poll, 300);
+                                }
                             }
                         );
                     } catch (err) {
                         console.error("Eccezione durante il polling:", err);
-                        if (!stopped) poll(); // continua anche se AjaxUtil.get lancia direttamente un errore
+                        if (!stopped) {
+                            // Attendi 300ms prima di ripetere altrimenti il polling entra in un loop troppo veloce e il browser, non avendo ancora rilasciato completamente le connessioni precedenti, finisce per saturare le risorse di rete
+                            setTimeout(poll, 300);
+                        }
                     }
                 };
 
@@ -600,6 +597,7 @@ sap.ui.define([
         },
 
         // TO FIX
+        // S4H_ODATA_INTEGRATION = https://my423501-api.s4hana.cloud.sap/sap/opu/odata/sap, mentre a me serve https://my423501-api.s4hana.cloud.sap/sap/opu/odata4/sap
         // chiama https://api.sap.com/api/WAREHOUSEINBOUNDDELIVERY_0001/path/get_WhseInboundDeliveryItem per il valore di EWMInboundDelivery appena ricavato per registrare l’entrata merci su SAP per ogni EWMInboundDelivery trovata
         // N.B: eseguirlo in loop se sono stati eccezionalmente trovati più valori
         postWmInboundDeliveryItem: async function (EWMInboundDeliveryArray) {
@@ -607,23 +605,12 @@ sap.ui.define([
                 const podSelectionModel = this.getPodSelectionModel();
                 const orderData = podSelectionModel.selectedOrderData;
 
-                // /WhseInboundDeliveryItem/{EWMInboundDelivery}/{EWMInboundDeliveryItem}/SAP__self.AdjustDeliveryItemQuantity
-                const sUrl = `/destination/S4H_DMC_API/WhseInboundDeliveryItem`;
+                const sUrl = `/destination/S4H_ODATA_INTEGRATION/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/WhseInboundDeliveryItem`;
 
                 // Crea un array di Promise (una per ogni chiamata POST)
                 const aPromises = EWMInboundDeliveryArray.map((deliveryObj) => {
-                    const payload = {
-                        EWMInboundDelivery: deliveryObj.EWMInboundDelivery, // documento EWM
-                        EWMInboundDeliveryItem: deliveryObj.EWMInboundDeliveryItem, // item
-                        EWMWarehouse: deliveryObj.EWMWarehouse || "235", // fallback esempio
-                        ManufacturingOrder: deliveryObj.ManufacturingOrder || orderData.order, // numero ordine prod.
-                        GoodsReceiptStatus: "1", // valore fisso come da specifica
-                        plant: sap.dm.dme.util.PlantSettings.getCurrentPlant(),
-                        shopOrder: orderData.order,
-                        sfc: orderData.sfc,
-                        postedBy: sap.ushell.Container.getUser().getId(),
-                        postingDateTime: new Date().toISOString(),
-                    };
+
+                    const sUrl = `/destination/S4H_ODATA_INTEGRATION/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/WhseInboundDeliveryItem/${deliveryObj.EWMInboundDelivery}/${deliveryObj.EWMInboundDeliveryItem}/SAP__self.AdjustDeliveryItemQuantity`;
 
                     return new Promise((resolve, reject) => {
                         AjaxUtil.post(
@@ -632,12 +619,13 @@ sap.ui.define([
                             function (oResponseData) {
                                 debugger;
                                 console.log(
-                                    `POST Warehouse Inbound Delivery Item per ${deliveryObj.EWMInboundDelivery}/${deliveryObj.EWMInboundDeliveryItem} – Success:`,
+                                    `POST Warehouse Inbound Delivery Item per ${deliveryObj.EWMInboundDelivery}/${deliveryObj.EWMInboundDeliveryItem} - Success:`,
                                     oResponseData
                                 );
                                 resolve(oResponseData);
                             },
                             function (oError, sHttpErrorMessage) {
+                                debugger;
                                 console.log(
                                     `Errore nel POST Warehouse Inbound Delivery Item per ${deliveryObj.EWMInboundDelivery}/${deliveryObj.EWMInboundDeliveryItem}:`,
                                     sHttpErrorMessage,

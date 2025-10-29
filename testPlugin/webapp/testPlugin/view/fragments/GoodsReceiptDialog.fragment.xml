@@ -30,8 +30,7 @@
             <Label text="Quantity / Unit" required="true"/>
             <HBox>
                 <Input width="50%" value="{wmModel>/selectedItem/quantity}" type="Number"/>
-                <!-- <Select width="40%" selectedKey="{wmModel>/selectedItem/uom}"> -->
-                <Select selectedKey="{wmModel>/selectedItem/uom}">
+                <Select selectedKey="{wmModel>/selectedItem/uom}" enabled="false">
                     <core:Item key="PC" text="PC - Piece"/>
                     <core:Item key="KG" text="KG - Kilogram"/>
                 </Select>
