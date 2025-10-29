@@ -526,8 +526,7 @@ sap.ui.define([
             });         
         },
 
-        // TO FIX 
-        // S4H_ODATA_INTEGRATION = https://my423501-api.s4hana.cloud.sap/sap/opu/odata/sap, mentre a me serve https://my423501-api.s4hana.cloud.sap/sap/opu/odata4/sap
+        // TO TEST 
         // chiama https://api.sap.com/api/WAREHOUSEINBOUNDDELIVERY_0001/path/get_WhseInboundDeliveryItem a polling per massimo 10 secondi per recuperare EWMInboundDelivery 
         getWmInboundDeliveryItem: function () {
             const MAX_DURATION = 10000; // 10 secondi
@@ -537,7 +536,7 @@ sap.ui.define([
             const podSelectionModel = this.getPodSelectionModel();
             const orderData = podSelectionModel.selectedOrderData;
 
-            const sUrl = `/destination/S4H_ODATA_INTEGRATION/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/WhseInboundDeliveryItem`;
+            const sUrl = `/destination/S4H_ODATA_INTEGRATION_ODATA4/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/WhseInboundDeliveryItem`;
             const sParams = `?EWMWarehouse=${encodeURIComponent(oData[0].warehouseNumber)}`
                 + `&ManufacturingOrder=${encodeURIComponent(orderData.order)}`
                 + `&GoodsReceiptStatus=1`;
@@ -596,8 +595,7 @@ sap.ui.define([
             });
         },
 
-        // TO FIX
-        // S4H_ODATA_INTEGRATION = https://my423501-api.s4hana.cloud.sap/sap/opu/odata/sap, mentre a me serve https://my423501-api.s4hana.cloud.sap/sap/opu/odata4/sap
+        // TO TEST
         // chiama https://api.sap.com/api/WAREHOUSEINBOUNDDELIVERY_0001/path/get_WhseInboundDeliveryItem per il valore di EWMInboundDelivery appena ricavato per registrare l’entrata merci su SAP per ogni EWMInboundDelivery trovata
         // N.B: eseguirlo in loop se sono stati eccezionalmente trovati più valori
         postWmInboundDeliveryItem: async function (EWMInboundDeliveryArray) {
@@ -605,7 +603,7 @@ sap.ui.define([
                 const podSelectionModel = this.getPodSelectionModel();
                 const orderData = podSelectionModel.selectedOrderData;
 
-                const sUrl = `/destination/S4H_ODATA_INTEGRATION/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/WhseInboundDeliveryItem`;
+                const sUrl = `/destination/S4H_ODATA_INTEGRATION_ODATA4/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/WhseInboundDeliveryItem`;
 
                 // Crea un array di Promise (una per ogni chiamata POST)
                 const aPromises = EWMInboundDeliveryArray.map((deliveryObj) => {
