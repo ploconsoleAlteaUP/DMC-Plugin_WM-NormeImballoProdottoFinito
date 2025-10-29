@@ -29,7 +29,6 @@
                     <Column><Text text="Posting Date Time"/></Column>
                     <Column><Text text="Creation Date"/></Column>
                     <Column><Text text="Comments"/></Column>
-                    <Column><Text text="Print"/></Column>
                 </columns>
                 <items>
                     <ColumnListItem>
@@ -57,10 +56,6 @@
                             <Text text="{wmModel>postingDateTimeDisplay}"/>
                             <Text text="{wmModel>createdDateTimeDisplay}"/>
                             <Text text="{wmModel>comments}"/>
-                            <Button
-                                icon="sap-icon://print"
-                                type="Transparent"
-                                press=".onPrintPosting"/>
                         </cells>
                     </ColumnListItem>
                 </items>
