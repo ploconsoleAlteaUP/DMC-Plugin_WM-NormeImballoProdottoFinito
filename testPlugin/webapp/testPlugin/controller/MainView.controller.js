@@ -5,8 +5,9 @@ sap.ui.define([
     "sap/ui/core/Fragment",
     "sap/m/MessageBox",
     "../model/formatter",
-    "sap/dm/dme/model/AjaxUtil"
-], function (jQuery, PluginViewController, JSONModel, Fragment, MessageBox, formatter, AjaxUtil) {
+    "sap/dm/dme/model/AjaxUtil",
+    "../srv/Service"
+], function (jQuery, PluginViewController, JSONModel, Fragment, MessageBox, formatter, AjaxUtil, Service) {
     "use strict";
 
     let oController;
@@ -69,7 +70,7 @@ sap.ui.define([
 
             const sFilter = encodeURIComponent(
                 // `substringof('${sMaterial}',PackingInstructionNumber)`
-                `substringof('${sMaterial}',PackingInstructionNumber) and PackingInstructionIsDeleted eq false`                 
+                `substringof('${sMaterial}',PackingInstructionNumber) and PackingInstructionIsDeleted eq false`
             );
 
             const sExpand = encodeURIComponent(
@@ -86,7 +87,7 @@ sap.ui.define([
                     "Accept": "application/json"
                 },
                 success: function (oData) {
-                    if (!!!!oData && !!!!oData.d && !!!!oData.d.results) {
+                    if (!!!!oData && !!!!oData.d && !!!!oData.d.results && !!!!oData.d.results.length > 0) {
 
                         const aData = oData.d.results;
 
@@ -120,6 +121,8 @@ sap.ui.define([
                             that.getView().getModel("wmModel").setProperty("/scatolaBusy", false);
                             that.getView().getModel("wmModel").setProperty("/palletscatolaBusy", false);
 
+                            that.getView().byId("wm").setVisible(true);
+
                         } else {
 
                             for (let item of aData) {
@@ -149,8 +152,24 @@ sap.ui.define([
                         that.getView().getModel("wmModel").setProperty("/scatolaBusy", false);
                         that.getView().getModel("wmModel").setProperty("/palletscatolaBusy", false);
 
+                        //svuoto
+                        that.getView().getModel("wmModel").setProperty("/pallet", 0);
+                        that.getView().getModel("wmModel").setProperty("/scatola", 0);
+                        that.getView().getModel("wmModel").setProperty("/palletscatola", 0);
+
                         // Creo il messaggio
-                        MessageBox.error("There are no packaging standards");
+                        sap.m.MessageBox.error(
+                            `Definire norme di imballo del materiale ${this.getPodSelectionModel().selectedOrderData.materialName}.\nVersamento impossibile!\nContattare il supervisore.`,
+                            {
+                                onClose: () => {
+                                    // Torna indietro alla pagina precedente
+                                    window.history.back();
+                                    // oppure, se stai usando un router UI5:
+                                    // this.getOwnerComponent().getRouter().navTo("nomeDellaRoutePrecedente");
+                                }
+                            }
+                        );
+
 
                         // inibire la registrazione dei versamenti
                         that.getView().byId("recordBtn").setEnabled(false);
@@ -342,7 +361,7 @@ sap.ui.define([
                 uom: this.getPodSelectionModel().selectedOrderData.baseCommercialUom,
                 postingDateTime: new Date().toISOString(),
                 comments: "",
-                quantity: oModel.getData().pallet
+                quantity: oModel.getData().scatola > 0 ? oModel.getData().scatola : oModel.getData().pallet
             };
 
             oModel.setProperty("/selectedItem", oSelectedItem);
@@ -367,7 +386,7 @@ sap.ui.define([
             3- solo se se la postErpGoodsReceiptsUsingPOST_2 va a buon fine chiamare GET Warehouse_Inbound_Delivery_Item a polling per massimo 10 secondi
             4- quando la Warehouse_Inbound_Delivery_Item va a buon fine eseguire POST Warehouse_Inbound_Delivery_Item per il valore di EWMInboundDelivery appena ricavato 
                (o eseguirlo in loop se sono stati eccezionalmente trovati più valori) per registrare l’entrata merci su SAP.
-         */ 
+         */
         onDialogConfirm: async function (evt) {
             // Close dialog
             if (this._oGoodsReceiptDialog) {
@@ -385,7 +404,7 @@ sap.ui.define([
                 var res = await this.postErpGoodsReceipts();
 
                 // se la postErpGoodsReceiptsUsingPOST_2 va a buon fine
-                if (res){
+                if (res) {
                     // chiamare GET Warehouse_Inbound_Delivery_Item a polling per massimo 10 secondi per recuperare EWMInboundDelivery
                     this.getWmInboundDeliveryItem()
                         .then((res) => {
@@ -406,7 +425,7 @@ sap.ui.define([
 
         // se switch 'postQtyConfirmation' è ON chiama https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
         // la standard fa https://sap-dmc-test-n3lov8wp.execution.eu20-quality.web.dmc.cloud.sap/sapdmdmepod/~80d9e20e-6f47-44c7-9bcb-36549b837c9b~/dme/production-ms/quantityConfirmation/confirm
-        postQtyConfirmation: function(){
+        postQtyConfirmation: async function () {
             try {
                 // Get plugin configuration switch postQtyConfirmation value
                 const bPostQtyConfirmation = this.getConfiguration().postQtyConfirmation;
@@ -414,8 +433,8 @@ sap.ui.define([
                 if (!bPostQtyConfirmation) {
                     sap.m.MessageToast.show("Goods Receipt posted. Quantity Confirmation disabled in Configuration.");
                     return;
-                } 
-                
+                }
+
                 const podSelectionModel = this.getPodSelectionModel();
                 const orderData = podSelectionModel.selectedOrderData;
                 const oView = this.getView();
@@ -425,13 +444,16 @@ sap.ui.define([
                 // https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
                 const sUrl = `/destination/S4H_DMC_API/quantityConfirmation/v1/confirm`;
 
+                debugger;
+                const sWorkCenter = await Service.getWorkcenter((sap.dm.dme.util.PlantSettings).getCurrentPlant(), orderData.sfc, orderData.routingId);
+
                 // Post_Quantity_Confirmation payload
                 const payload = {
                     plant: (sap.dm.dme.util.PlantSettings).getCurrentPlant(),
                     shopOrder: orderData.order,
                     sfc: orderData.sfc,
-                    operationActivity: podSelectionModel.operations[0].operation, 
-                    workCenter: orderData.workcenter, 
+                    operationActivity: podSelectionModel.operations[0].operation,
+                    workCenter: sWorkCenter,//orderData.workcenter, 
                     yieldQuantity: oData.quantity,
                     yieldQuantityUnit: orderData.baseInternalUom,
                     // scrapQuantity	[...]
@@ -457,7 +479,7 @@ sap.ui.define([
                         console.log("Errore nel POST Quantity Confirmation:", sHttpErrorMessage, oError);
                         // sap.m.MessageBox.error("Errore nel POST Goods Receipt: " + sHttpErrorMessage);
                     }
-                );          
+                );
 
             } catch (err) {
                 console.log("Error posting quantity confirmation", err);
@@ -471,21 +493,25 @@ sap.ui.define([
         // The batchNumber field is required since material G10079A0IML0179 is batch managed, bisognerebbe usare il materiale FG129 che non è batch managed ma gli mancano altre cose per il flusso 
         // triggerPoint fisso a "ORD_POD_GR"?
         // chiama https://api.sap.com/api/sapdme_inventory/path/postErpGoodsReceiptsUsingPOST_2
-        postErpGoodsReceipts: async function(){
+        postErpGoodsReceipts: async function () {
             const oView = this.getView();
             const oModel = oView.getModel("wmModel");
             const oData = oModel.getProperty("/selectedItem");
             const podSelectionModel = this.getPodSelectionModel();
             const orderData = podSelectionModel.selectedOrderData;
             const order = orderData.order;
-            
+
             const sUrl = oController.getInventoryDataSourceUri() + "order/goodsReceipt";
+
+            //prelevare correttamente il WC dal servizio e non dal filtro, perché potrebbe essere multiplo
+            //debugger;
+            //const sWorkCenter = await Service.getWorkcenter((sap.dm.dme.util.PlantSettings).getCurrentPlant(), orderData.sfc, "");
 
             // erpGoodsReceipts payload
             const payload = {
                 orderNumber: order,
                 triggerPoint: "ORD_POD_GR", // ?
-                lineItems: [{   
+                lineItems: [{
                     // batchNumber is ONLY TO TEST => TO DELETE WITH RIGHT MATERIAL FG129
                     batchNumber: '000109',
                     // bomComponentSequence: oData.bomComponentSequence || null,
@@ -503,7 +529,7 @@ sap.ui.define([
                         }
                     },
                     // quantityToleranceCheck: oData.quantityToleranceCheck ?? true,
-                    sfc: orderData.sfc, 
+                    sfc: orderData.sfc,
                     storageLocation: oData.storageLocation
                 }]
             };
@@ -523,7 +549,7 @@ sap.ui.define([
                         reject(oError);
                     }
                 );
-            });         
+            });
         },
 
         // TO TEST 
@@ -569,7 +595,7 @@ sap.ui.define([
                                     resolve(response.value);
                                 } else if (!stopped) {
                                     // Attendi 300ms prima di ripetere altrimenti il polling entra in un loop troppo veloce e il browser, non avendo ancora rilasciato completamente le connessioni precedenti, finisce per saturare le risorse di rete
-                                    setTimeout(poll, 300); 
+                                    setTimeout(poll, 300);
                                 }
                             },
                             (error, msg) => {
