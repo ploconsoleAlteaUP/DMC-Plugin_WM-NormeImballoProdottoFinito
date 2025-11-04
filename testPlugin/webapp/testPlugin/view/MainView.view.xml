@@ -32,6 +32,11 @@
                                 <NumericContent value="{wmModel>/palletscatola}" icon="sap-icon://inbox"/>
                             </content>
                         </TileContent>
+                        <TileContent id="qtyScatoleVersate" busy="{wmModel>/scatoleVersateBusy}" visible="false" footer="Scatole Versate" footerColor="Critical">
+                            <content>
+                                <NumericContent value="{wmModel>/scatoleVersate}" valueColor="Critical"/>
+                            </content>
+                        </TileContent>
                     </HeaderContainer>
 
                     <!-- Table -->

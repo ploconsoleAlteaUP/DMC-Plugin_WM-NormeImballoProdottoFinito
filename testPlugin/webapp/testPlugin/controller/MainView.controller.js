@@ -120,6 +120,12 @@ sap.ui.define([
                             that.getView().getModel("wmModel").setProperty("/scatola", qtaScatola);
                             that.getView().getModel("wmModel").setProperty("/palletscatola", qtaScatolePallet);
 
+                            // TODO: quando sarà presente sfruttare il controllo di una variabile globare che screma i casi A e B
+                            if (Number(qtaScatola) !== 0) {
+                                // settare il counter delle scatole versate 
+                                that.setScatoleVersate();
+                            }
+
                             // fermo i busy
                             that.getView().getModel("wmModel").setProperty("/palletBusy", false);
                             that.getView().getModel("wmModel").setProperty("/scatolaBusy", false);
@@ -137,7 +143,6 @@ sap.ui.define([
                                         that.getView().getModel("wmModel").setProperty("/scatola", 0);
                                         that.getView().getModel("wmModel").setProperty("/palletscatola", 0);
                                     }
-
                                 }
                             }
 
@@ -202,6 +207,48 @@ sap.ui.define([
 
             // get storage location
             this.getPutawayStorageLocation();
+        },
+
+        setScatoleVersate: async function(sWorkCenter) {
+            const oView = this.getView();
+            const oModel = oView.getModel("wmModel");
+
+            oView.byId("qtyScatoleVersate").setVisible(true);
+            oModel.setProperty("/scatoleVersateBusy", true);
+
+            const podSelectionModel = this.getPodSelectionModel();
+            const orderData = podSelectionModel.selectedOrderData;
+            const sMaterial = orderData.material.material;
+
+            try {
+                // Recupero Workcenter se non passato
+                if (!sWorkCenter) {
+                    sWorkCenter = await Service.getWorkcenter(
+                        oView,
+                        sap.dm.dme.util.PlantSettings.getCurrentPlant(),
+                        orderData.sfc,
+                        orderData.routingId
+                    );
+                }
+
+                // Chiamata check nesting
+                const scatoleVersate = await Service.checkNesting(
+                    oView,
+                    sMaterial,
+                    sWorkCenter,
+                    EWMWarehouse 
+                );
+
+                oModel.setProperty("/scatoleVersate", scatoleVersate);
+
+            } catch (err) {
+                console.error("Errore in setScatoleVersate:", err);
+                // eventualmente mostra messaggio utente
+                // sap.m.MessageToast.show("Errore nel recupero scatole versate");
+                oModel.setProperty("/scatoleVersate", 0); // default in caso di errore
+            } finally {
+                oModel.setProperty("/scatoleVersateBusy", false);
+            }
         },
 
         getPutawayStorageLocation: async function () {
@@ -481,9 +528,6 @@ sap.ui.define([
                 // https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
                 const sUrl = `/destination/S4H_DMC_API/quantityConfirmation/v1/confirm`;
 
-                debugger;
-                const sWorkCenter = await Service.getWorkcenter(oView, (sap.dm.dme.util.PlantSettings).getCurrentPlant(), orderData.sfc, orderData.routingId);
-
                 // Post_Quantity_Confirmation payload
                 const payload = {
                     plant: (sap.dm.dme.util.PlantSettings).getCurrentPlant(),
@@ -505,12 +549,17 @@ sap.ui.define([
                     // checkSchedulingAndOeeRelevant
                 };
 
+                const that = this;
+
                 AjaxUtil.post(
                     sUrl,
                     payload,
                     function (oResponseData) {
                         console.log("POST Quantity Confirmation - Success:");
                         // sap.m.MessageToast.show("Goods Receipt creato con successo!");
+
+                        debugger;
+                        that.setScatoleVersate(oData.workcenter);
                     },
                     function (oError, sHttpErrorMessage) {
                         console.log("Errore nel POST Quantity Confirmation:", sHttpErrorMessage, oError);

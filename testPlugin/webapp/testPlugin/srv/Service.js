@@ -24,9 +24,9 @@ sap.ui.define([
                     //const details = oResponseData?.details;
                     const results = oResponseData.steps.filter(a => a.stepRouting.routing === sRouterID);
                     if (!!!!results && results.length > 0) {
-                        resolve(results[0].resource);
+                        resolve(results[0].resource || results[0].plannedWorkCenter);
                         debugger;
-                        oView.getModel("wmModel").getProperty("/selectedItem")["workcenter"] = results[0].resource === null ? results[0].plannedWorkCenter : results[0].resource;
+                        oView.getModel("wmModel").getProperty("/lineItems")[0]["workcenter"] = results[0].resource === null ? results[0].plannedWorkCenter : results[0].resource;
                     } else {
                         resolve(null)
                     }
@@ -190,6 +190,7 @@ sap.ui.define([
                 }
             }
 
+            return aScatole;
         },
 
         createNesting: async function (oView, sPlant) { },
