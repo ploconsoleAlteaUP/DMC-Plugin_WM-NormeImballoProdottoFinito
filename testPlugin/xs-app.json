@@ -15,6 +15,12 @@
       "target": "/destination/$1",
       "destination": "$1",
       "csrfProtection": false
+    },
+    {
+      "source": "^/destination4/(.*)$",
+      "target": "/destination/$1",
+      "destination": "$1",
+      "csrfProtection": true
     }
   ]
 }

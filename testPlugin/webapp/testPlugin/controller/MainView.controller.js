@@ -10,7 +10,7 @@ sap.ui.define([
 ], function (jQuery, PluginViewController, JSONModel, Fragment, MessageBox, formatter, AjaxUtil, Service) {
     "use strict";
 
-    let oController;
+    let oController, EWMWarehouse;
     return PluginViewController.extend("altea.dmc.plugin.testPlugin.testPlugin.controller.MainView", {
         formatter: formatter,
 
@@ -27,6 +27,7 @@ sap.ui.define([
             this.getView().byId("qtyScatola").setVisible(this.getConfiguration().addQtaScatola);
             this.getView().byId("qtyPalletScatola").setVisible(this.getConfiguration().addQtaScatolaPerPallet);
             this.getView().byId("headerTitle").setText(this.getConfiguration().title);
+            EWMWarehouse = this.getConfiguration().EWMWarehouse;
 
             // creo il modello di appoggio per il plugin
             let jsonModelWM = new JSONModel({ pallet: 0, scatola: 0, palletscatola: 0, palletBusy: true, scatolaBusy: true, palletscatolaBusy: true, lineItems: [] });
@@ -37,6 +38,9 @@ sap.ui.define([
 
             // richiamo la function per intercettare il dialog GoodsReceipt
             // this.interceptGoodsReceiptDialog();
+
+            //Inizializzo i SERVICE
+            Service = new Service(EWMWarehouse);
         },
 
         // NO LONGER NEEDED
@@ -405,21 +409,54 @@ sap.ui.define([
 
                 // se la postErpGoodsReceiptsUsingPOST_2 va a buon fine
                 if (res) {
+                    const oView = this.getView();
+                    const podSelectionModel = this.getPodSelectionModel();
+                    const orderData = podSelectionModel.selectedOrderData;
+                    const oModel = oView.getModel("wmModel");
+                    const oData = oModel.getProperty("/selectedItem");
+
                     // chiamare GET Warehouse_Inbound_Delivery_Item a polling per massimo 10 secondi per recuperare EWMInboundDelivery
-                    this.getWmInboundDeliveryItem()
+                    const aInboundDelivery = await Service.getInboundDelivery(oView, EWMWarehouse, orderData.order, oData.workcenter);
+
+                    // se trovo elementi, allora eseguo l'entrata merci
+                    if (!!!!aInboundDelivery && aInboundDelivery.length > 0) {
+                        let index = 0;
+                        this._executeInboundDelivery(index, aInboundDelivery);
+
+                    }
+
+                    /*this.getWmInboundDeliveryItem()
                         .then((res) => {
                             this.postWmInboundDeliveryItem(res);
                         })
                         .catch(() => {
                             console.warn("Nessuna EWMInboundDelivery trovata entro 10 secondi");
-                        });
+                        });*/
                 }
 
             } catch (err) {
+
+                if (!!!!err && !!!!err?.lineItems) {
+                    const sMessage = err?.lineItems
+                        ?.map(a => a.errorMessage)
+                        .filter(Boolean)
+                        .join("\n");
+
+                    sap.m.MessageBox.error(sMessage || "Errore sconosciuto nel POST Goods Receipt");
+                }
                 console.log("Error on dialog confirm", err);
                 // sap.m.MessageBox.error(msg);
             } finally {
                 sap.ui.core.BusyIndicator.hide();
+            }
+        },
+
+        _executeInboundDelivery: async function (index, aInboundDelivery) {
+            await Service.postInboundDelivery(oController, aInboundDelivery[index].EWMInboundDelivery);
+            index += 1;
+
+            if (index < aInboundDelivery.length) {
+                await this._executeInboundDelivery(index, aInboundDelivery);
             }
         },
 
@@ -445,7 +482,7 @@ sap.ui.define([
                 const sUrl = `/destination/S4H_DMC_API/quantityConfirmation/v1/confirm`;
 
                 debugger;
-                const sWorkCenter = await Service.getWorkcenter((sap.dm.dme.util.PlantSettings).getCurrentPlant(), orderData.sfc, orderData.routingId);
+                const sWorkCenter = await Service.getWorkcenter(oView, (sap.dm.dme.util.PlantSettings).getCurrentPlant(), orderData.sfc, orderData.routingId);
 
                 // Post_Quantity_Confirmation payload
                 const payload = {
@@ -453,7 +490,7 @@ sap.ui.define([
                     shopOrder: orderData.order,
                     sfc: orderData.sfc,
                     operationActivity: podSelectionModel.operations[0].operation,
-                    workCenter: sWorkCenter,//orderData.workcenter, 
+                    workCenter: oData.workcenter,//orderData.workcenter, 
                     yieldQuantity: oData.quantity,
                     yieldQuantityUnit: orderData.baseInternalUom,
                     // scrapQuantity	[...]
@@ -513,7 +550,7 @@ sap.ui.define([
                 triggerPoint: "ORD_POD_GR", // ?
                 lineItems: [{
                     // batchNumber is ONLY TO TEST => TO DELETE WITH RIGHT MATERIAL FG129
-                    batchNumber: '000109',
+                    batchNumber: '000110',
                     // bomComponentSequence: oData.bomComponentSequence || null,
                     comments: oData.comments || "",
                     // customFieldData: oData.customFieldData || null,

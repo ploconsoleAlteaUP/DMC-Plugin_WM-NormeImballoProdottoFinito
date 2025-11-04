@@ -21,6 +21,13 @@
 					"odataVersion": "2.0"
 				}
 			},
+			"inboundDeliveryService": {
+				"uri": "/destination/S4H_ODATA_INTEGRATION_ODATA4/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/",
+				"type": "OData",
+				"settings": {
+					"odataVersion": "4.0"
+				}
+			},
 			"plantModel": {
 				"uri": "/dme/plant.svc/",
 				"type": "OData",
@@ -102,6 +109,15 @@
 				"dataSource": "packingService",
 				"settings": {
 					"defaultBindingMode": "TwoWay"
+				}
+			},
+			"inboundDelivery": {
+				"dataSource": "inboundDeliveryService",
+				"settings": {
+					"synchronizationMode": "None",
+					"operationMode": "Server",
+					"groupId": "$auto",
+					"updateGroupId": "$auto"
 				}
 			}
 		},
