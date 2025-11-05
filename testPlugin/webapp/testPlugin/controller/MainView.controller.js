@@ -315,6 +315,9 @@ sap.ui.define([
         },
 
         loadPostingHistory: async function (iPage = 0) {
+
+            await  Service.postInboundDelivery(oController, "");
+
             const oWMModel = this.getView().getModel("wmModel");
 
             // Evita doppie chiamate se è già in corso un caricamento
@@ -599,7 +602,7 @@ sap.ui.define([
                 triggerPoint: "ORD_POD_GR", // ?
                 lineItems: [{
                     // batchNumber is ONLY TO TEST => TO DELETE WITH RIGHT MATERIAL FG129
-                    batchNumber: '000110',
+                    //batchNumber: '000110',
                     // bomComponentSequence: oData.bomComponentSequence || null,
                     comments: oData.comments || "",
                     // customFieldData: oData.customFieldData || null,

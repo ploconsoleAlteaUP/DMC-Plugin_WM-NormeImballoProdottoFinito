@@ -8,7 +8,8 @@ sap.ui.define([
     const DEST_ODATA_V2 = "/destination/S4H_ODATA_INTEGRATION",
         DEST_ODATA_V4_POST = "/destination4/S4H_ODATA_INTEGRATION_ODATA4",
         DEST_ODATA_V4 = "/destination/S4H_ODATA_INTEGRATION_ODATA4_GET",
-        DEST_DMC = "/destination/S4H_DMC_API";
+        DEST_DMC = "/destination/S4H_DMC_API",
+        DEST_CAP = "/destination/S4H_CAP_SERVICES_EWM";
 
     return {
 
@@ -127,46 +128,52 @@ sap.ui.define([
 
         postInboundDelivery: async function (oController, sInboundDelivery) {
             debugger;
-            const oModel = oController.getView().getModel("inboundDelivery");
-            const sPath = `/WhseInboundDeliveryHead('${sInboundDelivery}')/SAP__self.PostGoodsReceipt`;
+            const sUrl = `${DEST_CAP}/$metadata`;
 
-            try {
+            /*await new Promise((resolve, reject) => {
+                AjaxUtil.get(sUrl, undefined, (oResponseData) => {
+                    debugger;
+                    console.log("oResponseData", oResponseData);
 
-                const oAction = oModel.bindContext(sPath, null, {
-                    $$groupId: "myGroupId"
+                }, (oError, sHttpErrorMessage) => {
+                    //console.error("getWorkcenter:", sHttpErrorMessage);
+                    debugger;
+                    reject("");
                 });
+            });*/
 
-                await oAction.execute();
-                await oModel.submitBatch("myGroupId");
-
-                sap.m.MessageToast.show("Post Goods Receipt eseguito con successo");
-            } catch (oError) {
-                console.error("Errore POST:", oError);
-                sap.m.MessageToast.show("Errore nel POST: " + oError.message);
-            }
-
-            try {
-                const oAction = oModel.bindContext(`/WhseInboundDeliveryHead('${sInboundDelivery}')/SAP__self.PostGoodsReceipt`);
-                await oAction.execute();
-                sap.m.MessageToast.show("Post Goods Receipt eseguito con successo 2");
-            } catch (oError) {
-                console.error("Errore POST 2:", oError);
-                sap.m.MessageToast.show("Errore nel POST 2: " + oError.message);
-            }
+            jQuery.ajax({
+                url: sUrl,
+                method: "GET",
+                headers: {
+                    "Accept": "application/json"
+                },
+                success: function (oData) {
+                    debugger;
+                },
+                error: function (oError) {
+                    debugger;
+                }
+            });
+            
         },
 
         checkNesting: async function (oView, sMaterial, sWorkcenter, EWMWarehouse) {
             ///sap/opu/odata4/sap/api_whse_availablestock/srvd_a2x/sap/warehouseavailablestock/0001/WarehouseAvailableStock?$filter=EWMWarehouse eq '2350' and EWMStorageBin eq '750-111' and Product eq 'G10079A0IML0179'
             const sUrl = `${DEST_ODATA_V4}/api_whse_availablestock/srvd_a2x/sap/warehouseavailablestock/0001/WarehouseAvailableStock`;
-            const oParameters = {
+            /*const oParameters = {
                 EWMWarehouse: EWMWarehouse,
                 EWMStorageBin: sWorkcenter,
                 Product: sMaterial
-            };
+            };*/
+            const oParameters = {};
+            const sFilter = `$filter=EWMWarehouse eq '${EWMWarehouse}' and EWMStorageBin eq '${sWorkcenter}' and Product eq '${sMaterial}'`;
+
+
 
             //controllo il numero di scatole versate in base alle righe che restituisce il servizio
             const aScatole = await new Promise((resolve, reject) => {
-                AjaxUtil.get(sUrl, oParameters, (oResponseData) => {
+                AjaxUtil.get(`${sUrl}/?${sFilter}`, oParameters, (oResponseData) => {
                     const aValues = oResponseData?.value;
                     if (!!!!aValues && aValues.length > 0) {
                         resolve(aValues.length);

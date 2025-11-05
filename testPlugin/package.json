@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "",
   "devDependencies": {
-    "rimraf": "^6.0.1"
+    "rimraf": "^6.1.0"
   },
   "dependencies": {
     "@sap/approuter": "^14.3.2"
