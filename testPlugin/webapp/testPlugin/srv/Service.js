@@ -134,35 +134,56 @@ sap.ui.define([
                     function (oError) {
                         //Mostrare errore
                         debugger;
-                        sFunction("error","Si è verificato un errore nel versamento.\nContattare un responsabile");
+                        if (!!!!sFunction) {
+                            sFunction("error", "Si è verificato un errore nel versamento.\nContattare un responsabile");
+                        }
                     });
 
             } else {
 
-                const payload = {
-                    "EWMWarehouse": oController.getConfiguration().EWMWarehouse,
-                    "ManufacturingOrder": orderData.order,
-                    "Type": "B",
-                    "Material": orderData?.material?.material,
-                    "StorageBin": orderData?.workcenter
-                };
+                //controllo se abbiamo raggiunto il numero scatola per pallet
+                const sScatolaPerPallet = oController.oView.getModel("wmModel").getProperty("/palletscatola");
+                //const sScatoleVersate = oController.getModel("wmModel").getProperty("/scatoleVersate");
 
-                jQuery.ajax({
-                    url: sUrl,
-                    method: "POST",
-                    data: JSON.stringify(payload),
-                    headers: {
-                        "Accept": "application/json"
-                    },
-                    success: function (oData) {
-                        //aggiornare view e mostrare il messaggio di success
-                        debugger;
-                    },
-                    error: function (oError) {
-                        //Mostrare errore
-                        debugger;
-                    }
-                });
+                //if (!!!!sScatoleVersate && sScatoleVersate > 0) {
+                    //if (sScatoleVersate == sScatolaPerPallet) {
+                        const podSelectionModel = oController.getPodSelectionModel();
+                        const orderData = podSelectionModel.selectedOrderData;
+
+                        const payload = {
+                            "EWMWarehouse": oController.getConfiguration().EWMWarehouse,
+                            "ManufacturingOrder": orderData.order,
+                            "Type": "B",
+                            "Material": orderData?.material?.material,
+                            "StorageBin": orderData?.workcenter,
+                            "Pallet": sScatolaPerPallet
+                        };
+                        
+
+                        jQuery.ajax({
+                            url: sUrl,
+                            method: "POST",
+                            data: JSON.stringify(payload),
+                            headers: {
+                                "Accept": "application/json"
+                            },
+                            success: function (oData) {
+                                //aggiornare view e mostrare il messaggio di success
+                                debugger;
+                                if (!!!!sFunction) {
+                                    sFunction("success", "");
+                                }
+                            },
+                            error: function (oError) {
+                                //Mostrare errore
+                                debugger;
+                                if (!!!!sFunction) {
+                                    sFunction("error", "Si è verificato un errore nel versamento.\nContattare un responsabile");
+                                }
+                            }
+                        });
+                    //}
+                //}
 
             }
 
@@ -183,7 +204,7 @@ sap.ui.define([
 
             //controllo il numero di scatole versate in base alle righe che restituisce il servizio
             const aScatole = await new Promise((resolve, reject) => {
-                AjaxUtil.get(`${sUrl}/?${sFilter}`, oParameters, (oResponseData) => {
+                AjaxUtil.get(`${sUrl}?${sFilter}`, oParameters, (oResponseData) => {
                     const aValues = oResponseData?.value;
                     if (!!!!aValues && aValues.length > 0) {
                         resolve(aValues.length);
@@ -196,16 +217,6 @@ sap.ui.define([
                     resolve(0);
                 });
             });
-
-            //controllo se abbiamo raggiunto il numero scatola per pallet
-            const sScatolaPerPallet = oView.getModel("wmModel").getProperty("/palletscatola");
-
-            if (!!!!aScatole && aScatole > 0) {
-                if (aScatole == sScatolaPerPallet) {
-                    //eseguo annidamento
-                    //eseguo creazione task
-                }
-            }
 
             return aScatole;
         }
