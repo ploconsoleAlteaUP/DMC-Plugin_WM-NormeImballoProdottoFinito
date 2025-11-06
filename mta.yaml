@@ -13,7 +13,9 @@ modules:
     httpHeaders:
        - X-Frame-Options: deny
     CORS: "[{\"uriPattern\": \"^/testPlugin/(.*)$\",\"allowedOrigin\": [
-           {\"host\": \"sap-dmc-test-n3lov8wp.execution.eu20-quality.web.dmc.cloud.sap\",\"protocol\": \"https\"}],
+           {\"host\": \"sap-dmc-test-n3lov8wp.execution.eu20-quality.web.dmc.cloud.sap\",\"protocol\": \"https\"},
+           {\"host\": \"sap-dmc-test-n3lov8wp.authentication.eu20.hana.ondemand.com\",\"protocol\": \"https\"},
+           {\"host\": \"sunino-spa-sap-dmc-test-cap-dmc-wm-srv.cfapps.eu20-001.hana.ondemand.com\",\"protocol\": \"https\"}],
            \"allowedMethods\": [\"GET\",\"OPTIONS\"],
            \"allowedHeaders\":[\"Origin\", \"Accept\",\"X-Requested-With\",\"Content-Type\",
            \"Access-Control-Request-Method\",\"Access-Control-Request-Headers\",\"Authorization\",
@@ -25,6 +27,8 @@ modules:
       #builder: grunt
    requires:
     - name: uaa_indicator_suite
+    - name: destination_hmi_pod_plugin
+    - name: cap-dmc-wm-auth
 
 resources:
  - name: uaa_indicator_suite
@@ -33,4 +37,11 @@ resources:
       service-plan: application
       service: xsuaa
    type: org.cloudfoundry.managed-service
+ - name: destination_hmi_pod_plugin
+   parameters:
+      service-plan: lite
+      service: destination
+   type: org.cloudfoundry.managed-service
+ - name: cap-dmc-wm-auth
+   type: org.cloudfoundry.existing-service
 

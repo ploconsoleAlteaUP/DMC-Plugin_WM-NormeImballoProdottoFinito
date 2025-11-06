@@ -10,7 +10,7 @@ sap.ui.define([
 ], function (jQuery, PluginViewController, JSONModel, Fragment, MessageBox, formatter, AjaxUtil, Service) {
     "use strict";
 
-    let oController, EWMWarehouse;
+    let oController, EWMWarehouse, _TYPE = "";
     return PluginViewController.extend("altea.dmc.plugin.testPlugin.testPlugin.controller.MainView", {
         formatter: formatter,
 
@@ -41,6 +41,8 @@ sap.ui.define([
 
             //Inizializzo i SERVICE
             Service = new Service(EWMWarehouse);
+
+            Service.test();
         },
 
         // NO LONGER NEEDED
@@ -124,6 +126,9 @@ sap.ui.define([
                             if (Number(qtaScatola) !== 0) {
                                 // settare il counter delle scatole versate 
                                 that.setScatoleVersate();
+                                _TYPE = "B";
+                            } else {
+                                _TYPE = "A";
                             }
 
                             // fermo i busy
@@ -143,6 +148,8 @@ sap.ui.define([
                                         that.getView().getModel("wmModel").setProperty("/scatola", 0);
                                         that.getView().getModel("wmModel").setProperty("/palletscatola", 0);
                                     }
+
+                                    _TYPE = "A";
                                 }
                             }
 
@@ -316,8 +323,6 @@ sap.ui.define([
 
         loadPostingHistory: async function (iPage = 0) {
 
-            await  Service.postInboundDelivery(oController, "");
-
             const oWMModel = this.getView().getModel("wmModel");
 
             // Evita doppie chiamate se è già in corso un caricamento
@@ -466,14 +471,24 @@ sap.ui.define([
                     const oData = oModel.getProperty("/selectedItem");
 
                     // chiamare GET Warehouse_Inbound_Delivery_Item a polling per massimo 10 secondi per recuperare EWMInboundDelivery
-                    const aInboundDelivery = await Service.getInboundDelivery(oView, EWMWarehouse, orderData.order, oData.workcenter);
+                    //const aInboundDelivery = await Service.getInboundDelivery(oView, EWMWarehouse, orderData.order, orderData.workcenter);
 
                     // se trovo elementi, allora eseguo l'entrata merci
-                    if (!!!!aInboundDelivery && aInboundDelivery.length > 0) {
-                        let index = 0;
-                        this._executeInboundDelivery(index, aInboundDelivery);
+                    //if (!!!!aInboundDelivery && aInboundDelivery.length > 0) {
+                        //let index = 0;
+                        //this._executeInboundDelivery(index, aInboundDelivery);
 
-                    }
+                    //}
+                    await Service.postInboundDelivery(oController, _TYPE, function(sType, sMessage) {
+                        sap.ui.core.BusyIndicator.hide();
+                        oController.loadData();
+
+                        if(sType === "success") {
+                            sap.m.MessageToast.show(`Versamento avvenuto con successo`);
+                        } else {
+                            sap.m.MessageBox.error(sMessage);
+                        }
+                    });
 
                     /*this.getWmInboundDeliveryItem()
                         .then((res) => {
@@ -497,12 +512,12 @@ sap.ui.define([
                 console.log("Error on dialog confirm", err);
                 // sap.m.MessageBox.error(msg);
             } finally {
-                sap.ui.core.BusyIndicator.hide();
+                
             }
         },
 
         _executeInboundDelivery: async function (index, aInboundDelivery) {
-            await Service.postInboundDelivery(oController, aInboundDelivery[index].EWMInboundDelivery);
+            await Service.postInboundDelivery(oController, aInboundDelivery[index].EWMInboundDelivery, _TYPE);
             index += 1;
 
             if (index < aInboundDelivery.length) {
@@ -574,7 +589,7 @@ sap.ui.define([
                 console.log("Error posting quantity confirmation", err);
                 // sap.m.MessageBox.error(msg);
             } finally {
-                sap.ui.core.BusyIndicator.hide();
+                //sap.ui.core.BusyIndicator.hide();
             }
         },
 
@@ -643,7 +658,7 @@ sap.ui.define([
 
         // TO TEST 
         // chiama https://api.sap.com/api/WAREHOUSEINBOUNDDELIVERY_0001/path/get_WhseInboundDeliveryItem a polling per massimo 10 secondi per recuperare EWMInboundDelivery 
-        getWmInboundDeliveryItem: function () {
+        /*getWmInboundDeliveryItem: function () {
             const MAX_DURATION = 10000; // 10 secondi
             const oView = this.getView();
             const oModel = oView.getModel("wmModel");
@@ -708,12 +723,12 @@ sap.ui.define([
 
                 poll();
             });
-        },
+        },*/
 
         // TO TEST
         // chiama https://api.sap.com/api/WAREHOUSEINBOUNDDELIVERY_0001/path/get_WhseInboundDeliveryItem per il valore di EWMInboundDelivery appena ricavato per registrare l’entrata merci su SAP per ogni EWMInboundDelivery trovata
         // N.B: eseguirlo in loop se sono stati eccezionalmente trovati più valori
-        postWmInboundDeliveryItem: async function (EWMInboundDeliveryArray) {
+        /*postWmInboundDeliveryItem: async function (EWMInboundDeliveryArray) {
             try {
                 const podSelectionModel = this.getPodSelectionModel();
                 const orderData = podSelectionModel.selectedOrderData;
@@ -767,7 +782,7 @@ sap.ui.define([
             } finally {
                 sap.ui.core.BusyIndicator.hide();
             }
-        },
+        },*/
 
         onBeforeRenderingPlugin: function () {
             this.subscribe("UpdateAssemblyStatusEvent", this.handleAssemblyStatusEvent, this);

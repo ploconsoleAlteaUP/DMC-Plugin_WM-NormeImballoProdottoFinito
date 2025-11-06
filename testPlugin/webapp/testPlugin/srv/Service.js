@@ -9,7 +9,7 @@ sap.ui.define([
         DEST_ODATA_V4_POST = "/destination4/S4H_ODATA_INTEGRATION_ODATA4",
         DEST_ODATA_V4 = "/destination/S4H_ODATA_INTEGRATION_ODATA4_GET",
         DEST_DMC = "/destination/S4H_DMC_API",
-        DEST_CAP = "/destination/S4H_CAP_SERVICES_EWM";
+        DEST_CAP = "/destination/S4H_CAP_SERVICES_EWM"; //
 
     return {
 
@@ -42,6 +42,42 @@ sap.ui.define([
 
         },
 
+        test() {
+            const sUrlMetadata = `${DEST_CAP}/$metadata`;
+            const sUrl = `${DEST_CAP}/test`;
+
+            jQuery.ajax({
+                url: sUrlMetadata,
+                method: "GET",
+                headers: {
+                    "Accept": "application/json"
+                },
+                success: function (oData) {
+                    //aggiornare view e mostrare il messaggio di success
+                    debugger;
+                },
+                error: function (oError) {
+                    //Mostrare errore
+                    debugger;
+                }
+            });
+
+            jQuery.ajax({
+                url: sUrl,
+                method: "GET",
+                headers: {
+                    "Accept": "application/json"
+                },
+                success: function (oData) {
+                    //aggiornare view e mostrare il messaggio di success
+                    debugger;
+                },
+                error: function (oError) {
+                    //Mostrare errore
+                    debugger;
+                }
+            });
+        },
         //EWMWarehouse eq '2350' and ManufacturingOrder eq '1000221' 
         // and GoodsReceiptStatus eq '1' and GoodsMovementBin eq '750-111'
         getInboundDelivery: async function (oView, EWMWarehouse, sOrder, sWorkCenter) {
@@ -74,88 +110,62 @@ sap.ui.define([
             });
         },
 
-        _getETAG: async function (sUrl) {
-            // 1️⃣ Ottieni l’ETag via GET
-            const oGetResponse = await new Promise((resolve, reject) => {
-                AjaxUtil.get(
-                    sUrl,
-                    {},
-                    (oData, _status, oXhr) => resolve({ data: oData, xhr: oXhr }),
-                    (oError, sHttpErrorMessage) => {
-                        console.error("Errore GET InboundDelivery:", sHttpErrorMessage);
-                        reject(sHttpErrorMessage);
+
+        postInboundDelivery: async function (oController, sType, sFunction) {
+            const sUrl = `${DEST_CAP}/WMInboundDelivery`;
+            if (sType === "A") {
+
+                const podSelectionModel = oController.getPodSelectionModel();
+                const orderData = podSelectionModel.selectedOrderData;
+
+                const payload = {
+                    "EWMWarehouse": oController.getConfiguration().EWMWarehouse,
+                    "ManufacturingOrder": orderData.order,
+                    "Type": "A"
+                };
+
+                AjaxUtil.post(sUrl, payload, function (oData) {
+                    //aggiornare view e mostrare il messaggio di success
+                    debugger;
+                    if (!!!!sFunction) {
+                        sFunction("success", "");
                     }
-                );
-            });
+                },
+                    function (oError) {
+                        //Mostrare errore
+                        debugger;
+                        sFunction("error","Si è verificato un errore nel versamento.\nContattare un responsabile");
+                    });
 
-            const sEtag = oGetResponse.xhr.getResponseHeader("ETag");
-            let sToken = null;
+            } else {
 
-            // 2️⃣ HEAD per ottenere il token (con xhr accessibile)
-            const sTokenUrl = sUrl.substring(0, sUrl.indexOf("0001/") + "0001/".length);
-            sToken = await new Promise((resolve) => {
-                $.ajax({
-                    url: sTokenUrl,
-                    type: "HEAD",
-                    headers: { "X-CSRF-Token": "Fetch" },
-                    complete: function (xhr) {
-                        const token = xhr.getResponseHeader("X-CSRF-Token");
-                        resolve(token || null);
+                const payload = {
+                    "EWMWarehouse": oController.getConfiguration().EWMWarehouse,
+                    "ManufacturingOrder": orderData.order,
+                    "Type": "B",
+                    "Material": orderData?.material?.material,
+                    "StorageBin": orderData?.workcenter
+                };
+
+                jQuery.ajax({
+                    url: sUrl,
+                    method: "POST",
+                    data: JSON.stringify(payload),
+                    headers: {
+                        "Accept": "application/json"
                     },
-                    error: function () {
-                        console.warn("HEAD CSRF fetch fallita, provo fallback GET...");
-                        resolve(null);
+                    success: function (oData) {
+                        //aggiornare view e mostrare il messaggio di success
+                        debugger;
+                    },
+                    error: function (oError) {
+                        //Mostrare errore
+                        debugger;
                     }
                 });
-            });
 
-            // 3️⃣ fallback se il token non è arrivato
-            if (!sToken) {
-                try {
-                    sToken = await AjaxUtil.fetchCsrfToken(sUrl);
-                } catch (e) {
-                    console.error("Errore fetchCsrfToken:", e);
-                }
             }
 
-            if (!sEtag && !sToken) {
-                throw new Error("ETag o token CSRF non trovati nella risposta");
-            }
-
-            return { etag: sEtag, token: sToken };
-        },
-
-
-        postInboundDelivery: async function (oController, sInboundDelivery) {
-            debugger;
-            const sUrl = `${DEST_CAP}/$metadata`;
-
-            /*await new Promise((resolve, reject) => {
-                AjaxUtil.get(sUrl, undefined, (oResponseData) => {
-                    debugger;
-                    console.log("oResponseData", oResponseData);
-
-                }, (oError, sHttpErrorMessage) => {
-                    //console.error("getWorkcenter:", sHttpErrorMessage);
-                    debugger;
-                    reject("");
-                });
-            });*/
-
-            jQuery.ajax({
-                url: sUrl,
-                method: "GET",
-                headers: {
-                    "Accept": "application/json"
-                },
-                success: function (oData) {
-                    debugger;
-                },
-                error: function (oError) {
-                    debugger;
-                }
-            });
-            
         },
 
         checkNesting: async function (oView, sMaterial, sWorkcenter, EWMWarehouse) {
@@ -198,11 +208,7 @@ sap.ui.define([
             }
 
             return aScatole;
-        },
-
-        createNesting: async function (oView, sPlant) { },
-
-        createTask: async function (oView, sPlant, sEWMDelivery, sEWMDeliveryItem) { },
+        }
 
     };
 });

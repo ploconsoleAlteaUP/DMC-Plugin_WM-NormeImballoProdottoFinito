@@ -14,7 +14,15 @@
       "source": "^/destination/(.*)$",
       "target": "/destination/$1",
       "destination": "$1",
-      "csrfProtection": false
+      "csrfProtection": false,
+      "authenticationType": "xsuaa"
+    },
+    {
+      "source": "^/dmeapi/(.*)$",
+      "target": "/dmeapi/$1",
+      "destination": "$1",
+      "csrfProtection": false,
+      "authenticationType": "xsuaa"
     }
   ]
 }
