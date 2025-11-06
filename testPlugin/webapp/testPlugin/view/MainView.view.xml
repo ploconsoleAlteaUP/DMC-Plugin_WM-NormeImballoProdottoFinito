@@ -32,7 +32,7 @@
                                 <NumericContent value="{wmModel>/palletscatola}" icon="sap-icon://inbox"/>
                             </content>
                         </TileContent>
-                        <TileContent id="qtyScatoleVersate" busy="{wmModel>/scatoleVersateBusy}" visible="false" footer="Scatole Versate" footerColor="Critical">
+                        <TileContent id="qtyScatoleVersate" busy="{wmModel>/scatoleVersateBusy}" visible="{= ${wmModel>/scatola} > 0 }" footer="Scatole Versate" footerColor="Critical">
                             <content>
                                 <NumericContent value="{wmModel>/scatoleVersate}" valueColor="Critical"/>
                             </content>

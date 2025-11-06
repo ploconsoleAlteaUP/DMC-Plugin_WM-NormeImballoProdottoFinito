@@ -110,6 +110,17 @@ sap.ui.define([
             });
         },
 
+        getMetadata: function () {
+            const sUrl = `${DEST_CAP}/$metadata`;
+            AjaxUtil.get(sUrl, undefined, function (oData) {
+                //aggiornare view e mostrare il messaggio di success
+                debugger;
+            },
+                function (oError) {
+                    //Mostrare errore
+                    debugger;
+                });
+        },
 
         postInboundDelivery: async function (oController, sType, sFunction) {
             const sUrl = `${DEST_CAP}/WMInboundDelivery`;
@@ -146,43 +157,41 @@ sap.ui.define([
                 //const sScatoleVersate = oController.getModel("wmModel").getProperty("/scatoleVersate");
 
                 //if (!!!!sScatoleVersate && sScatoleVersate > 0) {
-                    //if (sScatoleVersate == sScatolaPerPallet) {
-                        const podSelectionModel = oController.getPodSelectionModel();
-                        const orderData = podSelectionModel.selectedOrderData;
+                //if (sScatoleVersate == sScatolaPerPallet) {
+                const podSelectionModel = oController.getPodSelectionModel();
+                const orderData = podSelectionModel.selectedOrderData;
 
-                        const payload = {
-                            "EWMWarehouse": oController.getConfiguration().EWMWarehouse,
-                            "ManufacturingOrder": orderData.order,
-                            "Type": "B",
-                            "Material": orderData?.material?.material,
-                            "StorageBin": orderData?.workcenter,
-                            "Pallet": sScatolaPerPallet
-                        };
-                        
+                const payload = {
+                    "EWMWarehouse": oController.getConfiguration().EWMWarehouse,
+                    "ManufacturingOrder": orderData.order,
+                    "Type": "B",
+                    "Material": orderData?.material?.material,
+                    "StorageBin": orderData?.workcenter,
+                    "Pallet": sScatolaPerPallet
+                };
 
-                        jQuery.ajax({
-                            url: sUrl,
-                            method: "POST",
-                            data: JSON.stringify(payload),
-                            headers: {
-                                "Accept": "application/json"
-                            },
-                            success: function (oData) {
-                                //aggiornare view e mostrare il messaggio di success
-                                debugger;
-                                if (!!!!sFunction) {
-                                    sFunction("success", "");
-                                }
-                            },
-                            error: function (oError) {
-                                //Mostrare errore
-                                debugger;
-                                if (!!!!sFunction) {
-                                    sFunction("error", "Si è verificato un errore nel versamento.\nContattare un responsabile");
-                                }
-                            }
-                        });
-                    //}
+
+                AjaxUtil.post(sUrl, payload, function (oData) {
+                    //aggiornare view e mostrare il messaggio di success
+                    debugger;
+                    if (!!!!sFunction) {
+                        if (oData.status === "success") {
+                            sFunction("success", "");
+                        } else if (oData.status === "error") {
+                            sFunction("error", oData.message);
+                        }
+
+                    }
+                },
+                    function (oError) {
+                        //Mostrare errore
+                        debugger;
+                        if (!!!!sFunction) {
+                            sFunction("error", "Si è verificato un errore nel versamento.\nContattare un responsabile");
+                        }
+                    });
+
+                //}
                 //}
 
             }

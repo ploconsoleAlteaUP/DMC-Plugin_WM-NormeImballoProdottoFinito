@@ -129,6 +129,12 @@ sap.ui.define([
                                 _TYPE = "B";
                             } else {
                                 _TYPE = "A";
+                                try {
+                                    const oView = oController.getView().byId("qtyScatoleVersate").setVisible(false);
+                                } catch (error) {
+                                    
+                                }
+                                
                             }
 
                             // fermo i busy
@@ -291,6 +297,9 @@ sap.ui.define([
                 });
             });
 
+            //TEST
+            await Service.getMetadata();
+
             return oData;
         },
 
@@ -447,6 +456,7 @@ sap.ui.define([
                (o eseguirlo in loop se sono stati eccezionalmente trovati più valori) per registrare l’entrata merci su SAP.
          */
         onDialogConfirm: async function (evt) {
+
             // Close dialog
             if (this._oGoodsReceiptDialog) {
                 this._oGoodsReceiptDialog.close();
