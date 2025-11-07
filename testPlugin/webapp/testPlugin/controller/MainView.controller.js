@@ -214,8 +214,9 @@ sap.ui.define([
                 material: orderData.material.material,
                 description: orderData.material.description,
                 postedQuantityDisplay: Number(orderData.completedQty) + ' of ' + Number(orderData.plannedQty) + ' ' + orderData.baseCommercialUom,
-                postedQuantityPercent: Number(orderData.completedQty)
+                postedQuantityPercent: Number((100*orderData.completedQty)/orderData.plannedQty)
             }];
+
             that.getView().getModel("wmModel").setProperty("/lineItems", items);
 
             // get storage location
@@ -448,6 +449,19 @@ sap.ui.define([
             }
         },
 
+        onChiusuraManuale: async function(oEvent) {
+            sap.ui.core.BusyIndicator.show(0);
+            await Service.postInboundDelivery(oController, "B", function(sType, sMessage) {
+                        sap.ui.core.BusyIndicator.hide();
+                        oController.getGoodsReceiptData();
+
+                        if(sType === "success") {
+                            sap.m.MessageToast.show(`Versamento avvenuto con successo`);
+                        } else {
+                            sap.m.MessageBox.error(sMessage);
+                        }
+                    }, true);
+        },
         // TO TEST
         /*  1- chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
             2- chiamare POST postErpGoodsReceiptsUsingPOST_2
@@ -480,18 +494,9 @@ sap.ui.define([
                     const oModel = oView.getModel("wmModel");
                     const oData = oModel.getProperty("/selectedItem");
 
-                    // chiamare GET Warehouse_Inbound_Delivery_Item a polling per massimo 10 secondi per recuperare EWMInboundDelivery
-                    //const aInboundDelivery = await Service.getInboundDelivery(oView, EWMWarehouse, orderData.order, orderData.workcenter);
-
-                    // se trovo elementi, allora eseguo l'entrata merci
-                    //if (!!!!aInboundDelivery && aInboundDelivery.length > 0) {
-                        //let index = 0;
-                        //this._executeInboundDelivery(index, aInboundDelivery);
-
-                    //}
                     await Service.postInboundDelivery(oController, _TYPE, function(sType, sMessage) {
                         sap.ui.core.BusyIndicator.hide();
-                        oController.loadData();
+                        oController.getGoodsReceiptData();
 
                         if(sType === "success") {
                             sap.m.MessageToast.show(`Versamento avvenuto con successo`);
@@ -523,15 +528,6 @@ sap.ui.define([
                 // sap.m.MessageBox.error(msg);
             } finally {
                 
-            }
-        },
-
-        _executeInboundDelivery: async function (index, aInboundDelivery) {
-            await Service.postInboundDelivery(oController, aInboundDelivery[index].EWMInboundDelivery, _TYPE);
-            index += 1;
-
-            if (index < aInboundDelivery.length) {
-                await this._executeInboundDelivery(index, aInboundDelivery);
             }
         },
 
@@ -878,6 +874,14 @@ sap.ui.define([
 
             this.unsubscribe("UpdateAssemblyStatusEvent", {}, this);
             this.unsubscribe("WorklistSelectEvent", {}, this);
+        },
+
+        getGoodsReceiptData: function() {
+            let oSelectedOrderData = oController.getPodSelectionModel().selectedOrderData;
+            if (oSelectedOrderData) {
+                oController.publish("goodsReceiptSummaryEvent", oSelectedOrderData);
+            }
+            oController.loadData();
         }
     });
 });

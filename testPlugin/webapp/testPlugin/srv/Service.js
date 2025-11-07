@@ -116,13 +116,13 @@ sap.ui.define([
                 //aggiornare view e mostrare il messaggio di success
                 debugger;
             },
-                function (oError) {
-                    //Mostrare errore
-                    debugger;
-                });
+            function (oError) {
+                //Mostrare errore
+                debugger;
+            });
         },
 
-        postInboundDelivery: async function (oController, sType, sFunction) {
+        postInboundDelivery: async function (oController, sType, sFunction, isManual=false) {
             const sUrl = `${DEST_CAP}/WMInboundDelivery`;
             if (sType === "A") {
 
@@ -167,7 +167,8 @@ sap.ui.define([
                     "Type": "B",
                     "Material": orderData?.material?.material,
                     "StorageBin": orderData?.workcenter,
-                    "Pallet": sScatolaPerPallet
+                    "Pallet": sScatolaPerPallet,
+                    "Manuale": isManual
                 };
 
 
@@ -207,7 +208,7 @@ sap.ui.define([
                 Product: sMaterial
             };*/
             const oParameters = {};
-            const sFilter = `$filter=EWMWarehouse eq '${EWMWarehouse}' and EWMStorageBin eq '${sWorkcenter}' and Product eq '${sMaterial}'`;
+            const sFilter = `$filter=EWMWarehouse eq '${EWMWarehouse}' and EWMStorageBin eq '${sWorkcenter}' and Product eq '${sMaterial}' and EWMHUHasOpenWarehouseTask eq false`;
 
 
 

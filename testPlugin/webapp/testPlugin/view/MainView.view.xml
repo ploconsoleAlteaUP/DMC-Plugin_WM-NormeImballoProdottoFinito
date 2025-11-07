@@ -34,7 +34,7 @@
                         </TileContent>
                         <TileContent id="qtyScatoleVersate" busy="{wmModel>/scatoleVersateBusy}" visible="{= ${wmModel>/scatola} > 0 }" footer="Scatole Versate" footerColor="Critical">
                             <content>
-                                <NumericContent value="{wmModel>/scatoleVersate}" valueColor="Critical"/>
+                                <NumericContent value="{wmModel>/scatoleVersate}" valueColor="Critical" icon="sap-icon://tri-state"/>   
                             </content>
                         </TileContent>
                     </HeaderContainer>
@@ -52,7 +52,7 @@
                             <Column><Text text="Material No."/></Column>
                             <Column><Text text="Description"/></Column>
                             <Column><Text text="Storage Location"/></Column>
-                            <Column hAlign="End"><Text text="Posted Quantity"/></Column>
+                            <Column hAlign="End" visible="false"><Text text="Posted Quantity"/></Column>
                             <Column hAlign="Center"></Column>
                         </columns>
 
@@ -74,7 +74,11 @@
                                     </HBox>
 
                                     <!-- Buttons -->
-                                    <HBox justifyContent="Center" alignItems="Center">
+                                    <HBox justifyContent="Center"
+                                        alignItems="Center"
+                                        fitContainer="true"
+                                        wrap="Wrap"
+                                        class="sapUiSmallMargin">
                                         <Button
                                             text="Registrazioni"
                                             press=".onShowPostings"
@@ -84,6 +88,8 @@
                                             text="Registra"
                                             type="Emphasized"
                                             press=".onPostItem" />
+                                            
+                                        <Button icon="sap-icon://touch" text="Chiusura HU manuale" type="Reject" visible="{= ${wmModel>/scatola} &gt; 0 &amp;&amp; ${wmModel>/scatoleVersate} &gt; 0 }" press=".onChiusuraManuale" ariaLabelledBy="editButtonLabel"/>
                                     </HBox>
                                 </cells>
                             </ColumnListItem>
