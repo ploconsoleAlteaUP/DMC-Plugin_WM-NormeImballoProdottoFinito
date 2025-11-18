@@ -121,6 +121,12 @@ sap.ui.define([
                             that.getView().getModel("wmModel").setProperty("/pallet", qtaPallet);
                             that.getView().getModel("wmModel").setProperty("/scatola", qtaScatola);
                             that.getView().getModel("wmModel").setProperty("/palletscatola", qtaScatolePallet);
+                            try {
+                                that.getView().getModel("wmModel").setProperty("/packingMaterial", aData.filter(a => a.to_PackingInstructionComponent.results.some(b => b.PackingInstructionItemCategory === "P"))[0].to_PackingInstructionComponent?.results.filter(a => a.PackingInstructionItemCategory === "P")[0]?.Material || "");
+                            } catch (error) {
+                                that.getView().getModel("wmModel").setProperty("/packingMaterial", "");
+                            }
+
 
                             // TODO: quando sarà presente sfruttare il controllo di una variabile globare che screma i casi A e B
                             if (Number(qtaScatola) !== 0) {
@@ -132,9 +138,9 @@ sap.ui.define([
                                 try {
                                     const oView = oController.getView().byId("qtyScatoleVersate").setVisible(false);
                                 } catch (error) {
-                                    
+
                                 }
-                                
+
                             }
 
                             // fermo i busy
@@ -153,6 +159,12 @@ sap.ui.define([
                                         that.getView().getModel("wmModel").setProperty("/pallet", component.PackingInstructionItmTargetQty);
                                         that.getView().getModel("wmModel").setProperty("/scatola", 0);
                                         that.getView().getModel("wmModel").setProperty("/palletscatola", 0);
+                                    }
+
+                                    try {
+                                        that.getView().getModel("wmModel").setProperty("/packingMaterial", aData.filter(a => a.to_PackingInstructionComponent.results.some(b => b.PackingInstructionItemCategory === "P"))[0].to_PackingInstructionComponent?.results.filter(a => a.PackingInstructionItemCategory === "P")[0]?.Material || "");
+                                    } catch (error) {
+                                        that.getView().getModel("wmModel").setProperty("/packingMaterial", "");
                                     }
 
                                     _TYPE = "A";
@@ -178,6 +190,12 @@ sap.ui.define([
                         that.getView().getModel("wmModel").setProperty("/pallet", 0);
                         that.getView().getModel("wmModel").setProperty("/scatola", 0);
                         that.getView().getModel("wmModel").setProperty("/palletscatola", 0);
+
+                        try {
+                            that.getView().getModel("wmModel").setProperty("/packingMaterial", "");
+                        } catch (error) {
+                            that.getView().getModel("wmModel").setProperty("/packingMaterial", "");
+                        }
 
                         // Creo il messaggio
                         sap.m.MessageBox.error(
@@ -214,7 +232,7 @@ sap.ui.define([
                 material: orderData.material.material,
                 description: orderData.material.description,
                 postedQuantityDisplay: Number(orderData.completedQty) + ' of ' + Number(orderData.plannedQty) + ' ' + orderData.baseCommercialUom,
-                postedQuantityPercent: Number((100*orderData.completedQty)/orderData.plannedQty)
+                postedQuantityPercent: Number((100 * orderData.completedQty) / orderData.plannedQty)
             }];
 
             that.getView().getModel("wmModel").setProperty("/lineItems", items);
@@ -223,11 +241,11 @@ sap.ui.define([
             this.getPutawayStorageLocation();
         },
 
-        setScatoleVersate: async function(sWorkCenter) {
+        setScatoleVersate: async function (sWorkCenter) {
             const oView = this.getView();
             const oModel = oView.getModel("wmModel");
 
-            oView.byId("qtyScatoleVersate").setVisible(true);
+            oView.byId("qtyScatoleVersate").setVisible(_TYPE === "B");
             oModel.setProperty("/scatoleVersateBusy", true);
 
             const podSelectionModel = this.getPodSelectionModel();
@@ -250,7 +268,7 @@ sap.ui.define([
                     oView,
                     sMaterial,
                     sWorkCenter,
-                    EWMWarehouse 
+                    EWMWarehouse
                 );
 
                 oModel.setProperty("/scatoleVersate", scatoleVersate);
@@ -449,18 +467,21 @@ sap.ui.define([
             }
         },
 
-        onChiusuraManuale: async function(oEvent) {
+        onChiusuraManuale: async function (oEvent) {
             sap.ui.core.BusyIndicator.show(0);
-            await Service.postInboundDelivery(oController, "B", function(sType, sMessage) {
-                        sap.ui.core.BusyIndicator.hide();
-                        oController.getGoodsReceiptData();
+            await Service.postInboundDelivery(oController, "B", function (sType, sMessage) {
+                sap.ui.core.BusyIndicator.hide();
+                oController.getGoodsReceiptData();
 
-                        if(sType === "success") {
-                            sap.m.MessageToast.show(`Versamento avvenuto con successo`);
-                        } else {
-                            sap.m.MessageBox.error(sMessage);
-                        }
-                    }, true);
+                if (sType === "success") {
+                    sap.m.MessageToast.show(`Versamento avvenuto con successo`);
+                } else {
+                    sap.m.MessageBox.error(sMessage);
+                }
+
+                // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
+                oController.postQtyConfirmation();
+            }, true);
         },
         // TO TEST
         /*  1- chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
@@ -480,8 +501,6 @@ sap.ui.define([
             sap.ui.core.BusyIndicator.show(0);
 
             try {
-                // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
-                this.postQtyConfirmation();
 
                 // chiamare POST postErpGoodsReceiptsUsingPOST_2 e attenderne l'esito
                 var res = await this.postErpGoodsReceipts();
@@ -494,15 +513,18 @@ sap.ui.define([
                     const oModel = oView.getModel("wmModel");
                     const oData = oModel.getProperty("/selectedItem");
 
-                    await Service.postInboundDelivery(oController, _TYPE, function(sType, sMessage) {
+                    await Service.postInboundDelivery(oController, _TYPE, function (sType, sMessage) {
                         sap.ui.core.BusyIndicator.hide();
                         oController.getGoodsReceiptData();
 
-                        if(sType === "success") {
+                        if (sType === "success") {
                             sap.m.MessageToast.show(`Versamento avvenuto con successo`);
                         } else {
                             sap.m.MessageBox.error(sMessage);
                         }
+
+                        // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
+                        oController.postQtyConfirmation();
                     });
 
                     /*this.getWmInboundDeliveryItem()
@@ -527,7 +549,7 @@ sap.ui.define([
                 console.log("Error on dialog confirm", err);
                 // sap.m.MessageBox.error(msg);
             } finally {
-                
+
             }
         },
 
@@ -558,7 +580,7 @@ sap.ui.define([
                     shopOrder: orderData.order,
                     sfc: orderData.sfc,
                     operationActivity: podSelectionModel.operations[0].operation,
-                    workCenter: oData.workcenter,//orderData.workcenter, 
+                    workCenter: oData.workcenter || orderData.workcenter,//orderData.workcenter, 
                     yieldQuantity: oData.quantity,
                     yieldQuantityUnit: orderData.baseInternalUom,
                     // scrapQuantity	[...]
@@ -583,7 +605,7 @@ sap.ui.define([
                         // sap.m.MessageToast.show("Goods Receipt creato con successo!");
 
                         debugger;
-                        that.setScatoleVersate(oData.workcenter);
+                        that.setScatoleVersate(oData.workcenter || orderData.workcenter);
                     },
                     function (oError, sHttpErrorMessage) {
                         console.log("Errore nel POST Quantity Confirmation:", sHttpErrorMessage, oError);
@@ -876,7 +898,7 @@ sap.ui.define([
             this.unsubscribe("WorklistSelectEvent", {}, this);
         },
 
-        getGoodsReceiptData: function() {
+        getGoodsReceiptData: function () {
             let oSelectedOrderData = oController.getPodSelectionModel().selectedOrderData;
             if (oSelectedOrderData) {
                 oController.publish("goodsReceiptSummaryEvent", oSelectedOrderData);

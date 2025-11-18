@@ -132,7 +132,8 @@ sap.ui.define([
                 const payload = {
                     "EWMWarehouse": oController.getConfiguration().EWMWarehouse,
                     "ManufacturingOrder": orderData.order,
-                    "Type": "A"
+                    "Type": "A",
+                    "PackagingMaterial": oController.getView().getModel("wmModel").getProperty("/packingMaterial") || ""
                 };
 
                 AjaxUtil.post(sUrl, payload, function (oData) {
@@ -168,7 +169,8 @@ sap.ui.define([
                     "Material": orderData?.material?.material,
                     "StorageBin": orderData?.workcenter,
                     "Pallet": sScatolaPerPallet,
-                    "Manuale": isManual
+                    "Manuale": isManual,
+                    "PackagingMaterial": oController.getView().getModel("wmModel").getProperty("/packingMaterial") || ""
                 };
 
 
