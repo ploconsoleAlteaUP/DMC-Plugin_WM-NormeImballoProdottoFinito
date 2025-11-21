@@ -110,6 +110,31 @@ sap.ui.define([
             });
         },
 
+        //EWMWarehouse eq '2350' and ManufacturingOrder eq '1000221' 
+        // and GoodsReceiptStatus eq '1' and GoodsMovementBin eq '750-111'
+        getCountInboundDelivery: async function (oView, EWMWarehouse, sOrder) {
+
+            const sUrl = `${DEST_ODATA_V4}/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/WhseInboundDeliveryItem`;
+
+            const sFilters = `$filter=EWMWarehouse eq '${EWMWarehouse}' and ManufacturingOrder eq '${sOrder}' and GoodsReceiptStatus eq '1'&$count=true`;
+            return await new Promise((resolve, reject) => {
+                AjaxUtil.get(`${sUrl}?${sFilters}`, undefined, (oResponseData) => {
+                    debugger;
+                    const details = oResponseData?.value;
+                    /*const results = oResponseData.steps.filter(a => a.stepRouting.routing === sRouterID);*/
+                    if (!!!!details) {
+                        resolve(details.length);
+                    } else {
+                        resolve(0);
+                    }
+
+                }, (oError, sHttpErrorMessage) => {
+                    //console.error("getWorkcenter:", sHttpErrorMessage);
+                    reject("");
+                });
+            });
+        },
+
         getMetadata: function () {
             const sUrl = `${DEST_CAP}/$metadata`;
             AjaxUtil.get(sUrl, undefined, function (oData) {
@@ -122,7 +147,7 @@ sap.ui.define([
             });
         },
 
-        postInboundDelivery: async function (oController, sType, sFunction, isManual=false) {
+        postInboundDelivery: async function (oController, sType, sFunction, isManual=false, iCountOld) {
             const sUrl = `${DEST_CAP}/WMInboundDelivery`;
             if (sType === "A") {
 
@@ -133,7 +158,8 @@ sap.ui.define([
                     "EWMWarehouse": oController.getConfiguration().EWMWarehouse,
                     "ManufacturingOrder": orderData.order,
                     "Type": "A",
-                    "PackagingMaterial": oController.getView().getModel("wmModel").getProperty("/packingMaterial") || ""
+                    "PackagingMaterial": oController.getView().getModel("wmModel").getProperty("/packingMaterial") || "",
+                    "CountOld": `${iCountOld}`
                 };
 
                 AjaxUtil.post(sUrl, payload, function (oData) {
@@ -170,7 +196,8 @@ sap.ui.define([
                     "StorageBin": orderData?.workcenter,
                     "Pallet": sScatolaPerPallet,
                     "Manuale": isManual,
-                    "PackagingMaterial": oController.getView().getModel("wmModel").getProperty("/packingMaterial") || ""
+                    "PackagingMaterial": oController.getView().getModel("wmModel").getProperty("/packingMaterial") || "",
+                    "CountOld": `${iCountOld}`
                 };
 
 

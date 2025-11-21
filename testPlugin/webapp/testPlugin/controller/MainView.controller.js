@@ -526,14 +526,20 @@ sap.ui.define([
 
             try {
 
+                //TODO: Richiamare la 
+                // /sap/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/WhseInboundDeliveryItem?$filter=EWMWarehouse eq 'PLE1' and ManufacturingOrder eq '1000023' and GoodsReceiptStatus eq '1'&$count=true
+                // e prelevarsi il count e lo salviamo dentro una variabile (iCountOld)
+                const podSelectionModel = this.getPodSelectionModel();
+                const orderData = podSelectionModel.selectedOrderData;
+                var iCountOld = await Service.getCountInboundDelivery(oController, EWMWarehouse, orderData.order);
+
+
                 // chiamare POST postErpGoodsReceiptsUsingPOST_2 e attenderne l'esito
                 var res = await this.postErpGoodsReceipts();
 
                 // se la postErpGoodsReceiptsUsingPOST_2 va a buon fine
                 if (res) {
                     const oView = this.getView();
-                    const podSelectionModel = this.getPodSelectionModel();
-                    const orderData = podSelectionModel.selectedOrderData;
                     const oModel = oView.getModel("wmModel");
                     const oData = oModel.getProperty("/selectedItem");
 
@@ -549,7 +555,7 @@ sap.ui.define([
 
                         // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
                         oController.postQtyConfirmation();
-                    });
+                    }, false, iCountOld);
 
                     /*this.getWmInboundDeliveryItem()
                         .then((res) => {
