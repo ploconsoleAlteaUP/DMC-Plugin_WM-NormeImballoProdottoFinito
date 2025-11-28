@@ -489,6 +489,8 @@ sap.ui.define([
         },
 
         onConfermaChiusuraManuale: async function (oEvent) {
+            this.oManualClosingConfirmDialog().close();
+
             sap.ui.core.BusyIndicator.show(0);
 
             await Service.postInboundDelivery(oController, "B", function (sType, sMessage) {
