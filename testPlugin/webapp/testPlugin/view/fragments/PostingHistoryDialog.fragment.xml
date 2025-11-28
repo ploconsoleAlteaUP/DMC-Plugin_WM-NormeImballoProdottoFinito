@@ -21,8 +21,8 @@
                 <columns>
                     <Column><Text text="Material Number"/></Column>
                     <Column><Text text="Quantity"/></Column>
-                    <Column><Text text="Parallel Quantity"/></Column>
-                    <Column><Text text="Batch ID"/></Column>
+                    <!-- <Column><Text text="Parallel Quantity"/></Column>
+                    <Column><Text text="Batch ID"/></Column> -->
                     <Column><Text text="Storage Location"/></Column>
                     <Column><Text text="Posted By"/></Column>
                     <Column><Text text="Status"/></Column>
@@ -35,21 +35,9 @@
                         <cells>
                             <Text text="{wmModel>material}"/>
                             <!-- Quantity + Unit -->
-                            <Text text="{
-                                parts: [
-                                    {path: 'wmModel>quantity/value'},
-                                    {path: 'wmModel>quantity/unitOfMeasure/uom'}
-                                ],
-                                formatter: '.formatter.formatQuantityWithUnit'
-                            }"/>
-                            <Text text="{
-                                parts: [
-                                    {path: 'wmModel>parallelQuantity/value'},
-                                    {path: 'wmModel>parallelQuantity/unitOfMeasure/uom'}
-                                ],
-                                formatter: '.formatter.formatQuantityWithUnit'
-                            }"/>
-                            <Text text="{wmModel>batchNumber}"/>
+                            <Text text="{= ${wmModel>quantity/value} + ' ' + ${wmModel>quantity/unitOfMeasure/uom} }"/>
+                            <!-- <Text text="{= ${wmModel>parallelQuantity/value} + ' ' + ${wmModel>parallelQuantity/unitOfMeasure/uom} }"/>
+                            <Text text="{wmModel>batchNumber}"/> -->
                             <Text text="{wmModel>storageLocation}"/>
                             <Text text="{wmModel>userId}"/>
                             <Text text="{wmModel>cancellationStatus}"/>

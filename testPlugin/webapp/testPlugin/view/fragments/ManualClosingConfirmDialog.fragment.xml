@@ -1,0 +1,18 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+    <Dialog
+        id="confirmManualClosingDialog"
+        type="Message"
+        title="Conferma chiusura manuale">
+        <content>
+            <Text text="Vuoi avviare la chiusura manuale?"/>
+        </content>
+        <beginButton>
+            <Button text="Ok" press=".onConfermaChiusuraManuale"/>
+        </beginButton>
+        <endButton>
+            <Button text="Annulla" press=".onCloseDialog"/>
+        </endButton>
+    </Dialog>
+</core:FragmentDefinition>

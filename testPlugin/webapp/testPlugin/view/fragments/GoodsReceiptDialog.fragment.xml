@@ -29,7 +29,7 @@
             <!-- Quantity / Unit -->
             <Label text="Quantity / Unit" required="true"/>
             <HBox>
-                <Input width="50%" value="{wmModel>/selectedItem/quantity}" type="Number"/>
+                <Input width="50%" value="{wmModel>/selectedItem/quantity}" type="Number" editable="false" enabled="false"/>
                 <Select selectedKey="{wmModel>/selectedItem/uom}" enabled="false">
                     <core:Item key="PC" text="PC - Piece"/>
                     <core:Item key="KG" text="KG - Kilogram"/>

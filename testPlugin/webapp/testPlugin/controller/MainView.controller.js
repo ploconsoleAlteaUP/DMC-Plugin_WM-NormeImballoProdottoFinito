@@ -4,10 +4,11 @@ sap.ui.define([
     "sap/ui/model/json/JSONModel",
     "sap/ui/core/Fragment",
     "sap/m/MessageBox",
+    "sap/m/Dialog",
     "../model/formatter",
     "sap/dm/dme/model/AjaxUtil",
     "../srv/Service"
-], function (jQuery, PluginViewController, JSONModel, Fragment, MessageBox, formatter, AjaxUtil, Service) {
+], function (jQuery, PluginViewController, JSONModel, Fragment, MessageBox, Dialog, formatter, AjaxUtil, Service) {
     "use strict";
 
     let oController, EWMWarehouse, _TYPE = "";
@@ -67,6 +68,9 @@ sap.ui.define([
 
         loadData: function () {
             const that = this;
+
+            that.getView().getModel("wmModel").setProperty("/sfcStatus", this.getPodSelectionModel().selectedOrderData.sfcStatus);
+
             const sMaterial = this.getPodSelectionModel().selectedOrderData.material.material;
 
             //avvio i loader
@@ -468,13 +472,31 @@ sap.ui.define([
         },
 
         onChiusuraManuale: async function (oEvent) {
+            // show confirm dialog
+            if (!this.oManualClosingConfirmDialog) {
+                Fragment.load({
+                    id: this.getView().getId(),
+                    name: "altea.dmc.plugin.testPlugin.testPlugin.view.fragments.ManualClosingConfirmDialog",
+                    controller: this
+                }).then(function (oDialog) {
+                    this.oManualClosingConfirmDialog = oDialog;
+                    this.getView().addDependent(oDialog);
+                    oDialog.open();
+                }.bind(this));
+            } else {
+                this.oManualClosingConfirmDialog.open();
+            }
+        },
+
+        onConfermaChiusuraManuale: async function (oEvent) {
             sap.ui.core.BusyIndicator.show(0);
+
             await Service.postInboundDelivery(oController, "B", function (sType, sMessage) {
                 sap.ui.core.BusyIndicator.hide();
                 oController.getGoodsReceiptData();
 
                 if (sType === "success") {
-                    sap.m.MessageToast.show(`Versamento avvenuto con successo`);
+                    sap.m.MessageToast.show(`Chiusura pallet effettuata con successo`);
                 } else {
                     sap.m.MessageBox.error(sMessage);
                 }
@@ -483,6 +505,7 @@ sap.ui.define([
                 oController.postQtyConfirmation();
             }, true);
         },
+
         // TO TEST
         /*  1- chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
             2- chiamare POST postErpGoodsReceiptsUsingPOST_2
@@ -491,7 +514,6 @@ sap.ui.define([
                (o eseguirlo in loop se sono stati eccezionalmente trovati più valori) per registrare l’entrata merci su SAP.
          */
         onDialogConfirm: async function (evt) {
-
             // Close dialog
             if (this._oGoodsReceiptDialog) {
                 this._oGoodsReceiptDialog.close();
