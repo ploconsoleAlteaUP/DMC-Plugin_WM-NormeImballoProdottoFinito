@@ -19,7 +19,7 @@
                     <HeaderContainer id="wm" scrollStep="200" height="8rem">
                         <TileContent id="qtyPallet" busy="{wmModel>/palletBusy}" visible="false" footer="Qty Pallet">
                             <content>
-                                <NumericContent value="{wmModel>/pallet}" icon="sap-icon://fridge" />
+                                <NumericContent value="{wmModel>/pallet}" icon="sap-icon://fridge" truncateValueTo="5"/>
                             </content>
                         </TileContent>
                         <TileContent id="qtyScatola" busy="{wmModel>/scatolaBusy}" visible="false" footer="Qty Scatola">
