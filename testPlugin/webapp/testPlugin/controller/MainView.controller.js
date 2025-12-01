@@ -67,9 +67,17 @@ sap.ui.define([
         */
 
         loadData: function () {
+
+            try {
+                oController.getView().byId("recordBtn").setEnabled(oController.getPodSelectionModel().selectedOrderData.sfcStatus === "Active");
+                oController.getView().byId("manualBtn").setEnabled(oController.getPodSelectionModel().selectedOrderData.sfcStatus === "Active");
+            } catch (error) {
+                oController.getView().byId("recordBtn").setEnabled(true);
+            }
+
             const that = this;
 
-            that.getView().getModel("wmModel").setProperty("/sfcStatus", this.getPodSelectionModel().selectedOrderData.sfcStatus);
+            that.getView().getModel("wmModel").setProperty("/sfcStatus", );
 
             const sMaterial = this.getPodSelectionModel().selectedOrderData.material.material;
 
@@ -213,10 +221,6 @@ sap.ui.define([
                                 }
                             }
                         );
-
-
-                        // inibire la registrazione dei versamenti
-                        that.getView().byId("recordBtn").setEnabled(false);
                     }
                     console.log("API result:", oData);
                     //sap.m.MessageToast.show("Dati caricati correttamente");
@@ -321,7 +325,7 @@ sap.ui.define([
             });
 
             //TEST
-            await Service.getMetadata();
+            //await Service.getMetadata();
 
             return oData;
         },
