@@ -26,7 +26,7 @@ sap.ui.define([
                     const results = oResponseData.steps.filter(a => a.stepRouting.routing === sRouterID);
                     if (!!!!results && results.length > 0) {
                         resolve(results[0].resource || results[0].plannedWorkCenter);
-                        debugger;
+                        
                         oView.getModel("wmModel").getProperty("/lineItems")[0]["workcenter"] = results[0].resource === null ? results[0].plannedWorkCenter : results[0].resource;
                     } else {
                         resolve(null)
@@ -54,11 +54,11 @@ sap.ui.define([
                 },
                 success: function (oData) {
                     //aggiornare view e mostrare il messaggio di success
-                    debugger;
+                    
                 },
                 error: function (oError) {
                     //Mostrare errore
-                    debugger;
+                    
                 }
             });
 
@@ -70,11 +70,11 @@ sap.ui.define([
                 },
                 success: function (oData) {
                     //aggiornare view e mostrare il messaggio di success
-                    debugger;
+                    
                 },
                 error: function (oError) {
                     //Mostrare errore
-                    debugger;
+                    
                 }
             });
         },
@@ -96,7 +96,7 @@ sap.ui.define([
 
             return await new Promise((resolve, reject) => {
                 AjaxUtil.get(sUrl + sFilters, undefined, (oResponseData) => {
-                    debugger;
+                    
                     const details = oResponseData?.value;
                     /*const results = oResponseData.steps.filter(a => a.stepRouting.routing === sRouterID);*/
                     if (!!!!details && details.length > 0) {
@@ -119,7 +119,7 @@ sap.ui.define([
             const sFilters = `$filter=EWMWarehouse eq '${EWMWarehouse}' and ManufacturingOrder eq '${sOrder}' and GoodsReceiptStatus eq '1'&$count=true`;
             return await new Promise((resolve, reject) => {
                 AjaxUtil.get(`${sUrl}?${sFilters}`, undefined, (oResponseData) => {
-                    debugger;
+                    
                     const details = oResponseData?.value;
                     /*const results = oResponseData.steps.filter(a => a.stepRouting.routing === sRouterID);*/
                     if (!!!!details) {
@@ -139,11 +139,11 @@ sap.ui.define([
             const sUrl = `${DEST_CAP}/$metadata`;
             AjaxUtil.get(sUrl, undefined, function (oData) {
                 //aggiornare view e mostrare il messaggio di success
-                debugger;
+                
             },
             function (oError) {
                 //Mostrare errore
-                debugger;
+                
             });
         },
 
@@ -162,18 +162,18 @@ sap.ui.define([
                     "CountOld": `${iCountOld}`
                 };
 
-                AjaxUtil.post(sUrl, payload, function (oData) {
+                AjaxUtil.post(sUrl, payload, async function (oData) {
                     //aggiornare view e mostrare il messaggio di success
-                    debugger;
+                    
                     if (!!!!sFunction) {
-                        sFunction("success", "");
+                        await sFunction("success", "");
                     }
                 },
-                    function (oError) {
+                    async function (oError) {
                         //Mostrare errore
-                        debugger;
+                        
                         if (!!!!sFunction) {
-                            sFunction("error", "Si è verificato un errore nel versamento.\nContattare un responsabile");
+                            await sFunction("error", "Si è verificato un errore nel versamento.\nContattare un responsabile");
                         }
                     });
 
@@ -203,7 +203,7 @@ sap.ui.define([
 
                 AjaxUtil.post(sUrl, payload, function (oData) {
                     //aggiornare view e mostrare il messaggio di success
-                    debugger;
+                    
                     if (!!!!sFunction) {
                         if (oData.status === "success") {
                             sFunction("success", "");
@@ -215,7 +215,7 @@ sap.ui.define([
                 },
                     function (oError) {
                         //Mostrare errore
-                        debugger;
+                        
                         if (!!!!sFunction) {
                             sFunction("error", "Si è verificato un errore nel versamento.\nContattare un responsabile");
                         }

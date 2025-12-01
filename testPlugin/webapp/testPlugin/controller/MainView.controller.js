@@ -493,7 +493,7 @@ sap.ui.define([
 
             sap.ui.core.BusyIndicator.show(0);
 
-            await Service.postInboundDelivery(oController, "B", function (sType, sMessage) {
+            await Service.postInboundDelivery(oController, "B", async function (sType, sMessage) {
                 sap.ui.core.BusyIndicator.hide();
                 oController.getGoodsReceiptData();
 
@@ -504,7 +504,7 @@ sap.ui.define([
                 }
 
                 // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
-                oController.postQtyConfirmation();
+                await oController.postQtyConfirmation();
             }, true);
         },
 
@@ -534,37 +534,27 @@ sap.ui.define([
                 var iCountOld = await Service.getCountInboundDelivery(oController, EWMWarehouse, orderData.order);
 
 
-                // chiamare POST postErpGoodsReceiptsUsingPOST_2 e attenderne l'esito
-                var res = await this.postErpGoodsReceipts();
 
-                // se la postErpGoodsReceiptsUsingPOST_2 va a buon fine
-                if (res) {
-                    const oView = this.getView();
-                    const oModel = oView.getModel("wmModel");
-                    const oData = oModel.getProperty("/selectedItem");
+                const oView = this.getView();
+                const oModel = oView.getModel("wmModel");
+                const oData = oModel.getProperty("/selectedItem");
 
-                    await Service.postInboundDelivery(oController, _TYPE, function (sType, sMessage) {
-                        sap.ui.core.BusyIndicator.hide();
-                        oController.getGoodsReceiptData();
+                await Service.postInboundDelivery(oController, _TYPE, async function (sType, sMessage) {
+                    sap.ui.core.BusyIndicator.hide();
+                    oController.getGoodsReceiptData();
 
-                        if (sType === "success") {
-                            sap.m.MessageToast.show(`Versamento avvenuto con successo`);
-                        } else {
-                            sap.m.MessageBox.error(sMessage);
-                        }
+                    if (sType === "success") {
+                        sap.m.MessageToast.show(`Versamento avvenuto con successo`);
+                    } else {
+                        sap.m.MessageBox.error(sMessage);
+                    }
 
-                        // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
-                        oController.postQtyConfirmation();
-                    }, false, iCountOld);
+                    // chiamare POST postErpGoodsReceiptsUsingPOST_2 e attenderne l'esito
+                    var res = await this.postErpGoodsReceipts();
+                    // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
+                    oController.postQtyConfirmation();
+                }, false, iCountOld);
 
-                    /*this.getWmInboundDeliveryItem()
-                        .then((res) => {
-                            this.postWmInboundDeliveryItem(res);
-                        })
-                        .catch(() => {
-                            console.warn("Nessuna EWMInboundDelivery trovata entro 10 secondi");
-                        });*/
-                }
 
             } catch (err) {
 
@@ -631,10 +621,9 @@ sap.ui.define([
                     sUrl,
                     payload,
                     function (oResponseData) {
-                        console.log("POST Quantity Confirmation - Success:");
-                        // sap.m.MessageToast.show("Goods Receipt creato con successo!");
+                        console.log("POST Quantity Confirmation - Success");
 
-                        debugger;
+
                         that.setScatoleVersate(oData.workcenter || orderData.workcenter);
                     },
                     function (oError, sHttpErrorMessage) {
@@ -645,9 +634,9 @@ sap.ui.define([
 
             } catch (err) {
                 console.log("Error posting quantity confirmation", err);
-                // sap.m.MessageBox.error(msg);
+                
             } finally {
-                //sap.ui.core.BusyIndicator.hide();
+                
             }
         },
 
@@ -664,11 +653,7 @@ sap.ui.define([
             const order = orderData.order;
 
             const sUrl = oController.getInventoryDataSourceUri() + "order/goodsReceipt";
-
-            //prelevare correttamente il WC dal servizio e non dal filtro, perché potrebbe essere multiplo
-            //debugger;
-            //const sWorkCenter = await Service.getWorkcenter((sap.dm.dme.util.PlantSettings).getCurrentPlant(), orderData.sfc, "");
-
+            
             // erpGoodsReceipts payload
             const payload = {
                 orderNumber: order,
@@ -734,7 +719,7 @@ sap.ui.define([
 
                 // Timeout massimo
                 const timeoutId = setTimeout(() => {
-                    debugger;
+                    
                     stopped = true;
                     console.warn("Timeout: nessun EWMInboundDelivery trovato entro 10 secondi.");
                     reject();
@@ -803,7 +788,7 @@ sap.ui.define([
                             sUrl,
                             payload,
                             function (oResponseData) {
-                                debugger;
+                                
                                 console.log(
                                     `POST Warehouse Inbound Delivery Item per ${deliveryObj.EWMInboundDelivery}/${deliveryObj.EWMInboundDeliveryItem} - Success:`,
                                     oResponseData
@@ -811,7 +796,7 @@ sap.ui.define([
                                 resolve(oResponseData);
                             },
                             function (oError, sHttpErrorMessage) {
-                                debugger;
+                                
                                 console.log(
                                     `Errore nel POST Warehouse Inbound Delivery Item per ${deliveryObj.EWMInboundDelivery}/${deliveryObj.EWMInboundDeliveryItem}:`,
                                     sHttpErrorMessage,
@@ -827,7 +812,7 @@ sap.ui.define([
                 const results = await Promise.allSettled(aPromises);
 
                 // Analisi risultati
-                debugger;
+                
                 const success = results.filter(r => r.status === "fulfilled").length;
                 const failed = results.filter(r => r.status === "rejected").length;
 
