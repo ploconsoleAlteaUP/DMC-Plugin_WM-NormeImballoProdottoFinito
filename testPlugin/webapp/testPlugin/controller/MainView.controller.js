@@ -77,7 +77,7 @@ sap.ui.define([
 
             const that = this;
 
-            that.getView().getModel("wmModel").setProperty("/sfcStatus", );
+            that.getView().getModel("wmModel").setProperty("/sfcStatus",);
 
             const sMaterial = this.getPodSelectionModel().selectedOrderData.material.material;
 
@@ -477,23 +477,29 @@ sap.ui.define([
 
         onChiusuraManuale: async function (oEvent) {
             // show confirm dialog
-            if (!this.oManualClosingConfirmDialog) {
+            if (!oController.oManualClosingConfirmDialog) {
                 Fragment.load({
                     id: this.getView().getId(),
                     name: "altea.dmc.plugin.testPlugin.testPlugin.view.fragments.ManualClosingConfirmDialog",
                     controller: this
                 }).then(function (oDialog) {
-                    this.oManualClosingConfirmDialog = oDialog;
-                    this.getView().addDependent(oDialog);
+                    oController.oManualClosingConfirmDialog = oDialog;
+                    oController.getView().addDependent(oDialog);
                     oDialog.open();
                 }.bind(this));
             } else {
-                this.oManualClosingConfirmDialog.open();
+                oController.oManualClosingConfirmDialog.open();
             }
         },
 
         onConfermaChiusuraManuale: async function (oEvent) {
-            this.oManualClosingConfirmDialog().close();
+
+            try {
+                oController.oManualClosingConfirmDialog.close();
+            } catch (error) {
+
+            }
+
 
             sap.ui.core.BusyIndicator.show(0);
 
@@ -530,34 +536,40 @@ sap.ui.define([
 
             try {
 
-                //TODO: Richiamare la 
-                // /sap/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/WhseInboundDeliveryItem?$filter=EWMWarehouse eq 'PLE1' and ManufacturingOrder eq '1000023' and GoodsReceiptStatus eq '1'&$count=true
-                // e prelevarsi il count e lo salviamo dentro una variabile (iCountOld)
-                const podSelectionModel = this.getPodSelectionModel();
-                const orderData = podSelectionModel.selectedOrderData;
-                var iCountOld = await Service.getCountInboundDelivery(oController, EWMWarehouse, orderData.order);
+                // chiamare POST postErpGoodsReceiptsUsingPOST_2 e attenderne l'esito
+                var res = await this.postErpGoodsReceipts();
+
+                if (res) {
+                    //TODO: Richiamare la 
+                    // /sap/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/WhseInboundDeliveryItem?$filter=EWMWarehouse eq 'PLE1' and ManufacturingOrder eq '1000023' and GoodsReceiptStatus eq '1'&$count=true
+                    // e prelevarsi il count e lo salviamo dentro una variabile (iCountOld)
+                    const podSelectionModel = this.getPodSelectionModel();
+                    const orderData = podSelectionModel.selectedOrderData;
+                    var iCountOld = await Service.getCountInboundDelivery(oController, EWMWarehouse, orderData.order);
 
 
 
-                const oView = this.getView();
-                const oModel = oView.getModel("wmModel");
-                const oData = oModel.getProperty("/selectedItem");
+                    const oView = this.getView();
+                    const oModel = oView.getModel("wmModel");
+                    const oData = oModel.getProperty("/selectedItem");
 
-                await Service.postInboundDelivery(oController, _TYPE, async function (sType, sMessage) {
+                    await Service.postInboundDelivery(oController, _TYPE, async function (sType, sMessage) {
+                        sap.ui.core.BusyIndicator.hide();
+                        oController.getGoodsReceiptData();
+
+                        if (sType === "success") {
+                            sap.m.MessageToast.show(`Versamento avvenuto con successo`);
+                        } else {
+                            sap.m.MessageBox.error(sMessage);
+                        }
+                        // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
+                        oController.postQtyConfirmation();
+                    }, false, iCountOld);
+                } else {
                     sap.ui.core.BusyIndicator.hide();
-                    oController.getGoodsReceiptData();
+                }
 
-                    if (sType === "success") {
-                        sap.m.MessageToast.show(`Versamento avvenuto con successo`);
-                    } else {
-                        sap.m.MessageBox.error(sMessage);
-                    }
 
-                    // chiamare POST postErpGoodsReceiptsUsingPOST_2 e attenderne l'esito
-                    var res = await this.postErpGoodsReceipts();
-                    // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
-                    oController.postQtyConfirmation();
-                }, false, iCountOld);
 
 
             } catch (err) {
@@ -638,9 +650,9 @@ sap.ui.define([
 
             } catch (err) {
                 console.log("Error posting quantity confirmation", err);
-                
+
             } finally {
-                
+
             }
         },
 
@@ -657,7 +669,7 @@ sap.ui.define([
             const order = orderData.order;
 
             const sUrl = oController.getInventoryDataSourceUri() + "order/goodsReceipt";
-            
+
             // erpGoodsReceipts payload
             const payload = {
                 orderNumber: order,
