@@ -69,8 +69,9 @@ sap.ui.define([
         loadData: function () {
 
             try {
-                oController.getView().byId("recordBtn").setEnabled(oController.getPodSelectionModel().selectedOrderData.sfcStatus === "Active");
-                oController.getView().byId("manualBtn").setEnabled(oController.getPodSelectionModel().selectedOrderData.sfcStatus === "Active");
+                oController.getView().byId("recordBtn").setEnabled(oController.getPodSelectionModel().selectedPhaseData.status === "ACTIVE");
+                oController.getView().byId("manualBtn").setEnabled(oController.getPodSelectionModel().selectedPhaseData.status === "ACTIVE");
+
             } catch (error) {
                 oController.getView().byId("recordBtn").setEnabled(true);
             }
