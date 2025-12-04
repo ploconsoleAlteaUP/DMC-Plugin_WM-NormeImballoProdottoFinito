@@ -95,8 +95,6 @@
                                             text="Registra"
                                             type="Emphasized"
                                             press=".onPostItem" />
-
-                                            <!-- enabled="{= ${wmModel>/sfcStatus} === 'Active' }" -->
                                     </HBox>
                                 </cells>
                             </ColumnListItem>
@@ -104,6 +102,4 @@
                     </Table>
                 </content>
 	    </Panel>		
-        
-  
 </mvc:View>

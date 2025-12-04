@@ -67,7 +67,6 @@ sap.ui.define([
         */
 
         loadData: function () {
-
             try {
                 oController.getView().byId("recordBtn").setEnabled(oController.getPodSelectionModel().selectedPhaseData.status === "ACTIVE");
                 oController.getView().byId("manualBtn").setEnabled(oController.getPodSelectionModel().selectedPhaseData.status === "ACTIVE");
@@ -845,11 +844,18 @@ sap.ui.define([
         },*/
 
         onBeforeRenderingPlugin: function () {
+            // intercettazione/sottoscrizione eventi
             this.subscribe("UpdateAssemblyStatusEvent", this.handleAssemblyStatusEvent, this);
             this.subscribe("WorklistSelectEvent", this.handleWorklistSelectEvent, this);
-
             this.subscribe("goodsReceiptSummaryEvent", this._SummaryData, this);
             this.subscribe("orderSelectionEvent", this._SummaryData, this);
+
+            // eventi per start, hold e complete avvenuti con successo
+            // successo di complete o di hold => disabilitare recordBtn e manualBtn
+            // successo di start => abilitare recordBtn e manualBtn
+            this.subscribe("phaseStartEvent", this.handleRecordAndManualClosing, this);
+            this.subscribe("phaseCompleteEvent", this.handleRecordAndManualClosing, this);
+            this.subscribe("phaseHoldEvent", this.handleRecordAndManualClosing, this);
 
             var oView = this.getView();
             if (!oView) {
@@ -880,6 +886,13 @@ sap.ui.define([
                 return;
             }
             sap.m.MessageBox.information("Number of SFC selected - " + oData.selections.length);
+        },
+
+        // TO TEST
+        handleRecordAndManualClosing: function(sChannelId, sEventId, oData){
+            console.log("handleRecordAndManualClosing per l'evento " + sEventId);
+            this.getView().byId("recordBtn").setEnabled(this.getPodSelectionModel().selectedPhaseData.status === "ACTIVE");
+            this.getView().byId("manualBtn").setEnabled(this.getPodSelectionModel().selectedPhaseData.status === "ACTIVE");
         },
 
         isSubscribingToNotifications: function () {
