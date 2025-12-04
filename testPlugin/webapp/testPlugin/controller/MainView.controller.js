@@ -891,8 +891,11 @@ sap.ui.define([
         // TO TEST
         handleRecordAndManualClosing: function(sChannelId, sEventId, oData){
             console.log("handleRecordAndManualClosing per l'evento " + sEventId);
-            this.getView().byId("recordBtn").setEnabled(this.getPodSelectionModel().selectedPhaseData.status === "ACTIVE");
-            this.getView().byId("manualBtn").setEnabled(this.getPodSelectionModel().selectedPhaseData.status === "ACTIVE");
+            
+            // basandomi sull'evento e NON sullo status resto indipendente dalle tempistiche di refresh del modello del PhaseList plugin
+            const bEnable = (sEventId === "phaseStartEvent");
+            this.getView().byId("recordBtn").setEnabled(bEnable);
+            this.getView().byId("manualBtn").setEnabled(bEnable);
         },
 
         isSubscribingToNotifications: function () {
@@ -941,6 +944,9 @@ sap.ui.define([
 
             this.unsubscribe("UpdateAssemblyStatusEvent", {}, this);
             this.unsubscribe("WorklistSelectEvent", {}, this);
+            this.unsubscribe("phaseStartEvent", this.handleRecordAndManualClosing, this);
+            this.unsubscribe("phaseCompleteEvent", this.handleRecordAndManualClosing, this);
+            this.unsubscribe("phaseHoldEvent", this.handleRecordAndManualClosing, this);
         },
 
         getGoodsReceiptData: function () {
