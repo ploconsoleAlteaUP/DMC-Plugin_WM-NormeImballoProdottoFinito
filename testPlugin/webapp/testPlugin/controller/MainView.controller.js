@@ -67,13 +67,7 @@ sap.ui.define([
         */
 
         loadData: function () {
-            try {
-                oController.getView().byId("recordBtn").setEnabled(oController.getPodSelectionModel().selectedOrderData.orderExecutionStatus === "ACTIVE");
-                oController.getView().byId("manualBtn").setEnabled(oController.getPodSelectionModel().selectedOrderData.orderExecutionStatus === "ACTIVE");
-
-            } catch (error) {
-                oController.getView().byId("recordBtn").setEnabled(true);
-            }
+            this.setEnabledRecordAndManualClosing();
 
             const that = this;
 
@@ -932,11 +926,7 @@ sap.ui.define([
         // TO FIX
         handleRecordAndManualClosing: function (sChannelId, sEventId, oData) {
             console.log("handleRecordAndManualClosing per l'evento " + sEventId);
-
-            // basandomi sull'evento e NON sullo status resto indipendente dalle tempistiche di refresh del modello del PhaseList plugin
-            const bEnable = (sEventId === "phaseStartEvent");
-            this.getView().byId("recordBtn").setEnabled(bEnable);
-            this.getView().byId("manualBtn").setEnabled(bEnable);
+            this.setEnabledRecordAndManualClosing(sEventId);
         },
 
         isSubscribingToNotifications: function () {
@@ -996,6 +986,29 @@ sap.ui.define([
                 oController.publish("goodsReceiptSummaryEvent", oSelectedOrderData);
             }
             oController.loadData();
+        },
+
+        setEnabledRecordAndManualClosing: function(sEventId){
+            try {
+                let bEnable;
+                if (sEventId) {
+                    // basandomi sull'evento e NON sullo status resto indipendente dalle tempistiche di refresh del modello del PhaseList plugin
+                    bEnable = (sEventId === "phaseStartEvent");
+                    oController.getView().byId("recordBtn").setEnabled(bEnable);
+                    oController.getView().byId("manualBtn").setEnabled(bEnable);
+                } else {
+                    const sOrderStatus = oController.getPodSelectionModel().selectedOrderData?.orderExecutionStatus;
+                    const sPhaseStatus = oController.getPodSelectionModel().selectedPhaseData?.status;
+                    bEnable = (sOrderStatus !== 'HOLD') && 
+                        (sPhaseStatus === 'ACTIVE' || sPhaseStatus === 'IN_WORK');
+
+                    oController.getView().byId("recordBtn").setEnabled(bEnable);
+                    oController.getView().byId("manualBtn").setEnabled(bEnable);
+                }
+
+            } catch (error) {
+                oController.getView().byId("recordBtn").setEnabled(true);
+            }
         }
     });
 });
