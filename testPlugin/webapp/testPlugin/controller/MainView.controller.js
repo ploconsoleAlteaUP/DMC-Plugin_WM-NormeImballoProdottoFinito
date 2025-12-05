@@ -11,7 +11,7 @@ sap.ui.define([
 ], function (jQuery, PluginViewController, JSONModel, Fragment, MessageBox, Dialog, formatter, AjaxUtil, Service) {
     "use strict";
 
-    let oController, EWMWarehouse, _TYPE = "";
+    let oController, EWMWarehouse, _TYPE = "", actualNumber = 0, isOnConfirmation = false;
     return PluginViewController.extend("altea.dmc.plugin.testPlugin.testPlugin.controller.MainView", {
         formatter: formatter,
 
@@ -249,6 +249,28 @@ sap.ui.define([
             this.getPutawayStorageLocation();
         },
 
+        manageChangeNumberScatola: async function (iNewNumber) {
+            debugger;
+            //
+            if (iNewNumber === oController.actualNumber && oController.isOnConfirmation) {
+                oController.getView().getModel("wmModel").setProperty("/scatoleVersateBusy", true);
+                oController.getView().byId("recordBtn").setEnabled(false);
+
+                function sleep(ms) {
+                    return new Promise(resolve => setTimeout(resolve, ms));
+                }
+
+                await sleep(3000);
+                oController.isOnConfirmation = false;
+                await oController.loadData();
+                //await oController.manageChangeNumberScatola(iNewNumber);
+            } else {
+                oController.getView().getModel("wmModel").setProperty("/scatoleVersateBusy", false);
+                oController.getView().byId("recordBtn").setEnabled(true);
+                oController.isOnConfirmation = false;
+            }
+        },
+
         setScatoleVersate: async function (sWorkCenter) {
             const oView = this.getView();
             const oModel = oView.getModel("wmModel");
@@ -280,6 +302,8 @@ sap.ui.define([
                 );
 
                 oModel.setProperty("/scatoleVersate", scatoleVersate);
+
+                oController.manageChangeNumberScatola(scatoleVersate);
 
             } catch (err) {
                 console.error("Errore in setScatoleVersate:", err);
@@ -504,7 +528,6 @@ sap.ui.define([
             sap.ui.core.BusyIndicator.show(0);
 
             await Service.postInboundDelivery(oController, "B", async function (sType, sMessage, bProceede) {
-
                 oController.getGoodsReceiptData();
 
                 if (sType === "success") {
@@ -514,12 +537,12 @@ sap.ui.define([
                 }
 
                 // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
-                if (bProceede) {
-                    await oController.postQtyConfirmation();
-                    sap.ui.core.BusyIndicator.hide();
-                } else {
-                    sap.ui.core.BusyIndicator.hide();
-                }
+                //if (bProceede) {
+                await oController.postQtyConfirmation();
+                sap.ui.core.BusyIndicator.hide();
+                //} else {
+                //    sap.ui.core.BusyIndicator.hide();
+                //}
 
             }, true);
         },
@@ -532,6 +555,10 @@ sap.ui.define([
                (o eseguirlo in loop se sono stati eccezionalmente trovati più valori) per registrare l’entrata merci su SAP.
          */
         onDialogConfirm: async function (evt) {
+            oController.isOnConfirmation = true;
+            oController.actualNumber = oController.getView().getModel("wmModel").getProperty("/scatoleVersate");
+            oController.getView().byId("recordBtn").setEnabled(false);
+
             // Close dialog
             if (this._oGoodsReceiptDialog) {
                 this._oGoodsReceiptDialog.close();
@@ -645,7 +672,7 @@ sap.ui.define([
 
                 const that = this;
 
-                for (var i = 0; i < Number(oController.getView().getModel("wmModel").getProperty("/palletscatola")); i++) {
+                for (var i = 0; i < Number(oController.getView().getModel("wmModel").getProperty("/scatoleVersate")); i++) {
                     AjaxUtil.post(
                         sUrl,
                         payload,
@@ -903,9 +930,9 @@ sap.ui.define([
         },
 
         // TO FIX
-        handleRecordAndManualClosing: function(sChannelId, sEventId, oData){
+        handleRecordAndManualClosing: function (sChannelId, sEventId, oData) {
             console.log("handleRecordAndManualClosing per l'evento " + sEventId);
-            
+
             // basandomi sull'evento e NON sullo status resto indipendente dalle tempistiche di refresh del modello del PhaseList plugin
             const bEnable = (sEventId === "phaseStartEvent");
             this.getView().byId("recordBtn").setEnabled(bEnable);
