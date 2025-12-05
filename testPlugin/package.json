@@ -11,6 +11,7 @@
   "scripts": {
     "start": "node node_modules/@sap/approuter/approuter.js",
     "login": "cf login -a https://api.cf.eu20-001.hana.ondemand.com -o 'SUNINO SPA' -s 'SAP DMC Test' --sso",
+    "login-cf-prod": "cf login -a https://api.cf.eu20-001.hana.ondemand.com -o 'sap-dmc-prod' -s 'SAP DMc PROD' --sso",
     "build": "rimraf resources ../mta_archives && cd ../ && mbt build --mtar archive",
     "deploy": "cf deploy ../mta_archives/archive.mtar --retries 1",
     "build-deploy": "npm run build && npm run deploy"

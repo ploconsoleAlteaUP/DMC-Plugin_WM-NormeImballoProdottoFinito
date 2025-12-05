@@ -503,8 +503,8 @@ sap.ui.define([
 
             sap.ui.core.BusyIndicator.show(0);
 
-            await Service.postInboundDelivery(oController, "B", async function (sType, sMessage) {
-                sap.ui.core.BusyIndicator.hide();
+            await Service.postInboundDelivery(oController, "B", async function (sType, sMessage, bProceede) {
+
                 oController.getGoodsReceiptData();
 
                 if (sType === "success") {
@@ -514,7 +514,13 @@ sap.ui.define([
                 }
 
                 // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
-                await oController.postQtyConfirmation();
+                if (bProceede) {
+                    await oController.postQtyConfirmation();
+                    sap.ui.core.BusyIndicator.hide();
+                } else {
+                    sap.ui.core.BusyIndicator.hide();
+                }
+
             }, true);
         },
 
@@ -553,8 +559,8 @@ sap.ui.define([
                     const oModel = oView.getModel("wmModel");
                     const oData = oModel.getProperty("/selectedItem");
 
-                    await Service.postInboundDelivery(oController, _TYPE, async function (sType, sMessage) {
-                        sap.ui.core.BusyIndicator.hide();
+                    await Service.postInboundDelivery(oController, _TYPE, async function (sType, sMessage, bProceede) {
+
                         oController.getGoodsReceiptData();
 
                         if (sType === "success") {
@@ -563,7 +569,13 @@ sap.ui.define([
                             sap.m.MessageBox.error(sMessage);
                         }
                         // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
-                        oController.postQtyConfirmation();
+                        if (bProceede) {
+                            await oController.postQtyConfirmation();
+                            sap.ui.core.BusyIndicator.hide();
+                        } else {
+                            sap.ui.core.BusyIndicator.hide();
+                        }
+
                     }, false, iCountOld);
                 } else {
                     sap.ui.core.BusyIndicator.hide();
@@ -633,20 +645,22 @@ sap.ui.define([
 
                 const that = this;
 
-                AjaxUtil.post(
-                    sUrl,
-                    payload,
-                    function (oResponseData) {
-                        console.log("POST Quantity Confirmation - Success");
+                for (var i = 0; i < Number(oController.getView().getModel("wmModel").getProperty("/palletscatola")); i++) {
+                    AjaxUtil.post(
+                        sUrl,
+                        payload,
+                        function (oResponseData) {
+                            console.log("POST Quantity Confirmation - Success");
 
 
-                        that.setScatoleVersate(oData.workcenter || orderData.workcenter);
-                    },
-                    function (oError, sHttpErrorMessage) {
-                        console.log("Errore nel POST Quantity Confirmation:", sHttpErrorMessage, oError);
-                        // sap.m.MessageBox.error("Errore nel POST Goods Receipt: " + sHttpErrorMessage);
-                    }
-                );
+                            that.setScatoleVersate(oData.workcenter || orderData.workcenter);
+                        },
+                        function (oError, sHttpErrorMessage) {
+                            console.log("Errore nel POST Quantity Confirmation:", sHttpErrorMessage, oError);
+                            // sap.m.MessageBox.error("Errore nel POST Goods Receipt: " + sHttpErrorMessage);
+                        }
+                    );
+                }
 
             } catch (err) {
                 console.log("Error posting quantity confirmation", err);

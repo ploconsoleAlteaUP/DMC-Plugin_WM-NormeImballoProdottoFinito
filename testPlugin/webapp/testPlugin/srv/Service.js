@@ -166,7 +166,7 @@ sap.ui.define([
                     //aggiornare view e mostrare il messaggio di success
                     
                     if (!!!!sFunction) {
-                        await sFunction("success", "");
+                        await sFunction("success", "", oData.proceed);
                     }
                 },
                     async function (oError) {
@@ -206,7 +206,7 @@ sap.ui.define([
                     
                     if (!!!!sFunction) {
                         if (oData.status === "success") {
-                            sFunction("success", "");
+                            sFunction("success", "", oData.proceed);
                         } else if (oData.status === "error") {
                             sFunction("error", oData.message);
                         }
