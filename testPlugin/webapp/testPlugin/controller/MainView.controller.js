@@ -68,8 +68,8 @@ sap.ui.define([
 
         loadData: function () {
             try {
-                oController.getView().byId("recordBtn").setEnabled(oController.getPodSelectionModel().selectedPhaseData.status === "ACTIVE");
-                oController.getView().byId("manualBtn").setEnabled(oController.getPodSelectionModel().selectedPhaseData.status === "ACTIVE");
+                oController.getView().byId("recordBtn").setEnabled(oController.getPodSelectionModel().selectedOrderData.orderExecutionStatus === "ACTIVE");
+                oController.getView().byId("manualBtn").setEnabled(oController.getPodSelectionModel().selectedOrderData.orderExecutionStatus === "ACTIVE");
 
             } catch (error) {
                 oController.getView().byId("recordBtn").setEnabled(true);
@@ -888,7 +888,7 @@ sap.ui.define([
             sap.m.MessageBox.information("Number of SFC selected - " + oData.selections.length);
         },
 
-        // TO TEST
+        // TO FIX
         handleRecordAndManualClosing: function(sChannelId, sEventId, oData){
             console.log("handleRecordAndManualClosing per l'evento " + sEventId);
             
