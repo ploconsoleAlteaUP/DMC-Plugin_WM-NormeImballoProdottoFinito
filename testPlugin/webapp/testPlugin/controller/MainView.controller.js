@@ -20,6 +20,12 @@ sap.ui.define([
 
             console.log(`URL: ${this.getPublicApiRestDataSourceUri()}`);
             oController = this;
+
+            let jsonModel = new JSONModel({ 
+                recordBtnEnabled: true,   
+                manualBtnEnabled: true   
+            });
+            this.getView().setModel(jsonModel, "enableModel");
         },
 
         onAfterRendering: function () {
@@ -68,13 +74,7 @@ sap.ui.define([
         */
 
         loadData: function () {
-            try {
-                oController.getView().byId("recordBtn").setEnabled(oController.getPodSelectionModel().selectedOrderData.orderExecutionStatus === "ACTIVE");
-                oController.getView().byId("manualBtn").setEnabled(oController.getPodSelectionModel().selectedOrderData.orderExecutionStatus === "ACTIVE");
-
-            } catch (error) {
-                oController.getView().byId("recordBtn").setEnabled(true);
-            }
+            oController.setEnabledRecordAndManualClosing();
 
             const that = this;
 
@@ -255,7 +255,8 @@ sap.ui.define([
             //
             if (iNewNumber === oController.actualNumber && oController.isOnConfirmation) {
                 oController.getView().getModel("wmModel").setProperty("/scatoleVersateBusy", true);
-                oController.getView().byId("recordBtn").setEnabled(false);
+                // oController.getView().byId("recordBtn").setEnabled(false);
+                oController.getView().getModel("enableModel").setProperty("/recordBtnEnabled", false);
 
                 function sleep(ms) {
                     return new Promise(resolve => setTimeout(resolve, ms));
@@ -267,7 +268,9 @@ sap.ui.define([
                 //await oController.manageChangeNumberScatola(iNewNumber);
             } else {
                 oController.getView().getModel("wmModel").setProperty("/scatoleVersateBusy", false);
-                oController.getView().byId("recordBtn").setEnabled(true);
+                // oController.getView().byId("recordBtn").setEnabled(true);
+                // oController.getView().getModel("enableModel").setProperty("/recordBtnEnabled", true);
+                oController.setEnabledRecordAndManualClosing();
                 oController.isOnConfirmation = false;
             }
         },
@@ -579,7 +582,9 @@ sap.ui.define([
         onDialogConfirm: async function (evt) {
             oController.isOnConfirmation = true;
             oController.actualNumber = oController.getView().getModel("wmModel").getProperty("/scatoleVersate");
-            oController.getView().byId("recordBtn").setEnabled(false);
+            // oController.getView().byId("recordBtn").setEnabled(false);
+            oController.getView().getModel("enableModel").setProperty("/recordBtnEnabled", false);
+
 
             // Close dialog
             if (this._oGoodsReceiptDialog) {
@@ -988,11 +993,7 @@ sap.ui.define([
         // TO FIX
         handleRecordAndManualClosing: function (sChannelId, sEventId, oData) {
             console.log("handleRecordAndManualClosing per l'evento " + sEventId);
-
-            // basandomi sull'evento e NON sullo status resto indipendente dalle tempistiche di refresh del modello del PhaseList plugin
-            const bEnable = (sEventId === "phaseStartEvent");
-            this.getView().byId("recordBtn").setEnabled(bEnable);
-            this.getView().byId("manualBtn").setEnabled(bEnable);
+            this.setEnabledRecordAndManualClosing(sEventId);
         },
 
         isSubscribingToNotifications: function () {
@@ -1052,6 +1053,53 @@ sap.ui.define([
                 oController.publish("goodsReceiptSummaryEvent", oSelectedOrderData);
             }
             oController.loadData();
+        },
+
+        // setEnabledRecordAndManualClosing: function(sEventId){
+        //     try {
+        //         let bEnable;
+        //         if (sEventId) {
+        //             // basandomi sull'evento e NON sullo status resto indipendente dalle tempistiche di refresh del modello del PhaseList plugin
+        //             bEnable = (sEventId === "phaseStartEvent");
+        //             oController.getView().byId("recordBtn").setEnabled(bEnable);
+        //             oController.getView().byId("manualBtn").setEnabled(bEnable);
+        //         } else {
+        //             const sOrderStatus = oController.getPodSelectionModel().selectedOrderData?.orderExecutionStatus;
+        //             const sPhaseStatus = oController.getPodSelectionModel().selectedPhaseData?.status;
+        //             bEnable = (sOrderStatus !== 'HOLD') && 
+        //                 (sPhaseStatus === 'ACTIVE' || sPhaseStatus === 'IN_WORK');
+
+        //             oController.getView().byId("recordBtn").setEnabled(bEnable);
+        //             oController.getView().byId("manualBtn").setEnabled(bEnable);
+        //         }
+
+        //     } catch (error) {
+        //         oController.getView().byId("recordBtn").setEnabled(true);
+        //     }
+        // }
+        setEnabledRecordAndManualClosing: function(sEventId){
+            try {
+                let bEnable;
+                if (sEventId) {
+                    bEnable = (sEventId === "phaseStartEvent");
+                } else {
+                    const sOrderStatus = oController.getPodSelectionModel().selectedOrderData?.orderExecutionStatus;
+                    const sPhaseStatus = oController.getPodSelectionModel().selectedPhaseData?.status;
+                    bEnable = (sOrderStatus !== 'HOLD') && 
+                        (sPhaseStatus === 'ACTIVE' || sPhaseStatus === 'IN_WORK');
+                }
+
+                // usare enableModel
+                const oModel = oController.getView().getModel("enableModel");
+                oModel.setProperty("/recordBtnEnabled", bEnable);
+                oModel.setProperty("/manualBtnEnabled", bEnable);
+
+            } catch (error) {
+                console.error("setEnabledRecordAndManualClosing error:", error);
+                oModel.setProperty("/recordBtnEnabled", true);
+                oModel.setProperty("/manualBtnEnabled", true);
+
+            }
         }
     });
 });

@@ -64,7 +64,10 @@
                                         wrap="Wrap"
                                         class="sapUiSmallMargin">
                                         <Text text="{wmModel>material}"/>
-                                        <Button id="manualBtn" icon="sap-icon://touch" text="Chiusura HU manuale" type="Reject" visible="{= ${wmModel>/scatola} &gt; 0 &amp;&amp; ${wmModel>/scatoleVersate} &gt; 0 }" press=".onChiusuraManuale" ariaLabelledBy="editButtonLabel" class="sapUiTinyMarginTop"/>
+                                        <Button 
+                                        id="manualBtn" 
+                                        enabled="{enableModel>/manualBtnEnabled}"
+                                        icon="sap-icon://touch" text="Chiusura HU manuale" type="Reject" visible="{= ${wmModel>/scatola} &gt; 0 &amp;&amp; ${wmModel>/scatoleVersate} &gt; 0 }" press=".onChiusuraManuale" ariaLabelledBy="editButtonLabel" class="sapUiTinyMarginTop"/>
                                     </VBox>
   
                                     <Text text="{wmModel>description}"/>
@@ -92,6 +95,7 @@
                                             class="sapUiTinyMarginEnd" />
                                         <Button
                                             id="recordBtn"
+                                            enabled="{enableModel>/recordBtnEnabled}"
                                             text="Registra"
                                             type="Emphasized"
                                             press=".onPostItem" />
