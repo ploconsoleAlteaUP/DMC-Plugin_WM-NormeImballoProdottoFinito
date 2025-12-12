@@ -21,9 +21,9 @@ sap.ui.define([
             console.log(`URL: ${this.getPublicApiRestDataSourceUri()}`);
             oController = this;
 
-            let jsonModel = new JSONModel({ 
-                recordBtnEnabled: true,   
-                manualBtnEnabled: true   
+            let jsonModel = new JSONModel({
+                recordBtnEnabled: true,
+                manualBtnEnabled: true
             });
             this.getView().setModel(jsonModel, "enableModel");
         },
@@ -257,6 +257,13 @@ sap.ui.define([
                 oController.getView().getModel("wmModel").setProperty("/scatoleVersateBusy", true);
                 // oController.getView().byId("recordBtn").setEnabled(false);
                 oController.getView().getModel("enableModel").setProperty("/recordBtnEnabled", false);
+
+                try {
+                    //oController.getView().byId("manualBtn").setEnabled(true);
+                    oController.getView().byId("recordBtn").setEnabled(false);
+                } catch (error) {
+
+                }
 
                 function sleep(ms) {
                     return new Promise(resolve => setTimeout(resolve, ms));
@@ -585,6 +592,13 @@ sap.ui.define([
             // oController.getView().byId("recordBtn").setEnabled(false);
             oController.getView().getModel("enableModel").setProperty("/recordBtnEnabled", false);
 
+            try {
+                //oController.getView().byId("manualBtn").setEnabled(true);
+                oController.getView().byId("recordBtn").setEnabled(false);
+            } catch (error) {
+
+            }
+
 
             // Close dialog
             if (this._oGoodsReceiptDialog) {
@@ -684,7 +698,7 @@ sap.ui.define([
         },
         // se switch 'postQtyConfirmation' è ON chiama https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
         // la standard fa https://sap-dmc-test-n3lov8wp.execution.eu20-quality.web.dmc.cloud.sap/sapdmdmepod/~80d9e20e-6f47-44c7-9bcb-36549b837c9b~/dme/production-ms/quantityConfirmation/confirm
-        postQtyConfirmation: async function (isManual=false) {
+        postQtyConfirmation: async function (isManual = false) {
             try {
                 // Get plugin configuration switch postQtyConfirmation value
                 const bPostQtyConfirmation = this.getConfiguration().postQtyConfirmation;
@@ -1077,7 +1091,7 @@ sap.ui.define([
         //         oController.getView().byId("recordBtn").setEnabled(true);
         //     }
         // }
-        setEnabledRecordAndManualClosing: function(sEventId){
+        setEnabledRecordAndManualClosing: function (sEventId) {
             try {
                 let bEnable;
                 if (sEventId) {
@@ -1085,7 +1099,7 @@ sap.ui.define([
                 } else {
                     const sOrderStatus = oController.getPodSelectionModel().selectedOrderData?.orderExecutionStatus;
                     const sPhaseStatus = oController.getPodSelectionModel().selectedPhaseData?.status;
-                    bEnable = (sOrderStatus !== 'HOLD') && 
+                    bEnable = (sOrderStatus !== 'HOLD') &&
                         (sPhaseStatus === 'ACTIVE' || sPhaseStatus === 'IN_WORK');
                 }
 
@@ -1094,10 +1108,24 @@ sap.ui.define([
                 oModel.setProperty("/recordBtnEnabled", bEnable);
                 oModel.setProperty("/manualBtnEnabled", bEnable);
 
+                try {
+                    oController.getView().byId("manualBtn").setEnabled(bEnable);
+                    oController.getView().byId("recordBtn").setEnabled(bEnable);
+                } catch (error) {
+
+                }
+
             } catch (error) {
                 console.error("setEnabledRecordAndManualClosing error:", error);
                 oModel.setProperty("/recordBtnEnabled", true);
                 oModel.setProperty("/manualBtnEnabled", true);
+
+                try {
+                    oController.getView().byId("manualBtn").setEnabled(true);
+                    oController.getView().byId("recordBtn").setEnabled(true);
+                } catch (error) {
+
+                }
 
             }
         }
