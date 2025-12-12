@@ -11,7 +11,7 @@ sap.ui.define([
 ], function (jQuery, PluginViewController, JSONModel, Fragment, MessageBox, Dialog, formatter, AjaxUtil, Service) {
     "use strict";
 
-    let oController, EWMWarehouse, _TYPE = "", actualNumber = 0, isOnConfirmation = false;
+    let oController, EWMWarehouse, _TYPE = "", actualNumber = 0, isOnConfirmation = false, WarehouseProcessType = "", _RemainingStepQuantity = 0;
     return PluginViewController.extend("altea.dmc.plugin.testPlugin.testPlugin.controller.MainView", {
         formatter: formatter,
 
@@ -29,6 +29,7 @@ sap.ui.define([
             this.getView().byId("qtyPalletScatola").setVisible(this.getConfiguration().addQtaScatolaPerPallet);
             this.getView().byId("headerTitle").setText(this.getConfiguration().title);
             EWMWarehouse = this.getConfiguration().EWMWarehouse;
+            WarehouseProcessType = this.getConfiguration().WarehouseProcessType;
 
             // creo il modello di appoggio per il plugin
             let jsonModelWM = new JSONModel({ pallet: 0, scatola: 0, palletscatola: 0, palletBusy: true, scatolaBusy: true, palletscatolaBusy: true, lineItems: [] });
@@ -483,6 +484,12 @@ sap.ui.define([
                 quantity: oModel.getData().scatola > 0 ? oModel.getData().scatola : oModel.getData().pallet
             };
 
+            // Gestione dello StepInput
+            if (oModel.palletscatola !== undefined && oModel.palletscatola > 0) {
+                oSelectedItem["stepMaxQuantity"] = oModel.palletscatola - oModel.scatoleVersate;
+                oSelectedItem["stepQuantity"] = 1;
+            }
+
             oModel.setProperty("/selectedItem", oSelectedItem);
 
             if (!this._oGoodsReceiptDialog) {
@@ -496,6 +503,17 @@ sap.ui.define([
                 });
             } else {
                 this._oGoodsReceiptDialog.open();
+            }
+        },
+
+        // Gestione StepInput in modalità LiveChange
+        onChangeStep: function (oEvent) {
+            var sValue = oEvent.getParameter("value");
+            if (sValue !== undefined && sValue > 0) {
+                if (sValue > (oController.getView().getModel("wmModel").getProperty("/palletscatola") - oController.getView().getModel("wmModel").getProperty("/scatoleVersate"))) {
+                    MessageBox.show("Quantità inserita è superiore alla quantità consentita.\nVerrà automaticamente modificata in " + (oController.getView().getModel("wmModel").getProperty("/palletscatola") - oController.getView().getModel("wmModel").getProperty("/scatoleVersate")));
+                    oEvent.getSource().setValue(oController.getView().getModel("wmModel").getProperty("/palletscatola") - oController.getView().getModel("wmModel").getProperty("/scatoleVersate"));
+                }
             }
         },
 
@@ -538,13 +556,17 @@ sap.ui.define([
 
                 // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
                 //if (bProceede) {
-                await oController.postQtyConfirmation();
+                await oController.postQtyConfirmation(true);
                 sap.ui.core.BusyIndicator.hide();
                 //} else {
                 //    sap.ui.core.BusyIndicator.hide();
                 //}
 
-            }, true);
+            }, true, undefined, WarehouseProcessType);
+        },
+
+        wait: async function (ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
         },
 
         // TO TEST
@@ -570,10 +592,19 @@ sap.ui.define([
             try {
 
                 // chiamare POST postErpGoodsReceiptsUsingPOST_2 e attenderne l'esito
+                const oView = this.getView();
+                const oModel = oView.getModel("wmModel");
+                const oData = oModel.getProperty("/selectedItem");
+
                 var res = await this.postErpGoodsReceipts();
+                //_RemainingStepQuantity = oData.stepQuantity;
+                //var res = await oController.executeGoodReceipt();
+                //while(_RemainingStepQuantity > 0) {
+                //    await oController.wait(1000);
+                //}
 
                 if (res) {
-                    //TODO: Richiamare la 
+                    //Richiamare la 
                     // /sap/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/WhseInboundDeliveryItem?$filter=EWMWarehouse eq 'PLE1' and ManufacturingOrder eq '1000023' and GoodsReceiptStatus eq '1'&$count=true
                     // e prelevarsi il count e lo salviamo dentro una variabile (iCountOld)
                     const podSelectionModel = this.getPodSelectionModel();
@@ -582,9 +613,7 @@ sap.ui.define([
 
 
 
-                    const oView = this.getView();
-                    const oModel = oView.getModel("wmModel");
-                    const oData = oModel.getProperty("/selectedItem");
+
 
                     await Service.postInboundDelivery(oController, _TYPE, async function (sType, sMessage, bProceede) {
 
@@ -597,13 +626,13 @@ sap.ui.define([
                         }
                         // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
                         if (bProceede) {
-                            await oController.postQtyConfirmation();
+                            await oController.postQtyConfirmation(false);
                             sap.ui.core.BusyIndicator.hide();
                         } else {
                             sap.ui.core.BusyIndicator.hide();
                         }
 
-                    }, false, iCountOld);
+                    }, false, iCountOld, WarehouseProcessType);
                 } else {
                     sap.ui.core.BusyIndicator.hide();
                 }
@@ -628,9 +657,29 @@ sap.ui.define([
             }
         },
 
+        //Chiamo la Good Receipt in modalità multipla per evitare l'erroe di  exceed quantity
+        executeGoodReceipt: async function () {
+            const oView = this.getView();
+            const oModel = oView.getModel("wmModel");
+            const oData = oModel.getProperty("/selectedItem");
+
+            if (_RemainingStepQuantity > 1) {
+                _RemainingStepQuantity -= 1;
+                var res = await this.postErpGoodsReceipts();
+
+                if (res) {
+                    oController.executeGoodReceipt();
+                }
+
+            } else {
+                _RemainingStepQuantity = 0;
+                var res = await this.postErpGoodsReceipts();
+                return res;
+            }
+        },
         // se switch 'postQtyConfirmation' è ON chiama https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
         // la standard fa https://sap-dmc-test-n3lov8wp.execution.eu20-quality.web.dmc.cloud.sap/sapdmdmepod/~80d9e20e-6f47-44c7-9bcb-36549b837c9b~/dme/production-ms/quantityConfirmation/confirm
-        postQtyConfirmation: async function () {
+        postQtyConfirmation: async function (isManual=false) {
             try {
                 // Get plugin configuration switch postQtyConfirmation value
                 const bPostQtyConfirmation = this.getConfiguration().postQtyConfirmation;
@@ -672,7 +721,7 @@ sap.ui.define([
 
                 const that = this;
 
-                for (var i = 0; i < Number(oController.getView().getModel("wmModel").getProperty("/scatoleVersate")); i++) {
+                for (var i = 0; i < Number(isManual ? oController.getView().getModel("wmModel").getProperty("/scatoleVersate") : oController.getView().getModel("wmModel").getProperty("/palletscatola")); i++) {
                     AjaxUtil.post(
                         sUrl,
                         payload,
@@ -725,9 +774,9 @@ sap.ui.define([
                     material: oData.material, // "G10079A0IML0179"
                     // materialVersion: oData.materialVersion || "ERP001",
                     postedBy: oData.postedBy,
-                    postingDateTime: oData.postingDateTime,
+                    postingDateTime: oData.postingDateTime, //effettuare il versamento con data di ieri se siamo nel terzo turno?
                     quantity: {
-                        value: oData.quantity,
+                        value: oData.quantity * (oData.stepQuantity || 1),
                         unitOfMeasure: {
                             commercialUnitOfMeasure: oData.uom
                         }
@@ -749,8 +798,15 @@ sap.ui.define([
                     },
                     function (oError, sHttpErrorMessage) {
                         console.log("Errore nel POST Goods Receipt:", sHttpErrorMessage, oError);
+                        try {
+                            var sMessageError = oError.error.message;
+                            sap.m.MessageBox.error(sMessageError);
+                        } catch (error) {
+
+                        }
                         // sap.m.MessageBox.error("Errore nel POST Goods Receipt: " + sHttpErrorMessage);
-                        reject(oError);
+                        //reject(oError);
+                        resolve(undefined);
                     }
                 );
             });

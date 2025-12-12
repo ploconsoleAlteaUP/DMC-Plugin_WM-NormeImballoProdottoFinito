@@ -147,7 +147,7 @@ sap.ui.define([
             });
         },
 
-        postInboundDelivery: async function (oController, sType, sFunction, isManual=false, iCountOld) {
+        postInboundDelivery: async function (oController, sType, sFunction, isManual=false, iCountOld, WarehouseProcessType) {
             const sUrl = `${DEST_CAP}/WMInboundDelivery`;
             if (sType === "A") {
 
@@ -183,6 +183,8 @@ sap.ui.define([
                 const sScatolaPerPallet = oController.oView.getModel("wmModel").getProperty("/palletscatola");
                 //const sScatoleVersate = oController.getModel("wmModel").getProperty("/scatoleVersate");
 
+                const stepQuantity = oController.oView.getModel("wmModel").getProperty("/selectedItem/stepQuantity");
+
                 //if (!!!!sScatoleVersate && sScatoleVersate > 0) {
                 //if (sScatoleVersate == sScatolaPerPallet) {
                 const podSelectionModel = oController.getPodSelectionModel();
@@ -197,7 +199,9 @@ sap.ui.define([
                     "Pallet": sScatolaPerPallet,
                     "Manuale": isManual,
                     "PackagingMaterial": oController.getView().getModel("wmModel").getProperty("/packingMaterial") || "",
-                    "CountOld": `${iCountOld}`
+                    "CountOld": `${iCountOld}`,
+                    //"StepQuantity": stepQuantity,
+                    "WarehouseProcessType": WarehouseProcessType
                 };
 
 

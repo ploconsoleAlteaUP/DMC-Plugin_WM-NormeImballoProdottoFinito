@@ -30,6 +30,17 @@
             <Label text="Quantity / Unit" required="true"/>
             <HBox>
                 <Input width="50%" value="{wmModel>/selectedItem/quantity}" type="Number" editable="false" enabled="false"/>
+                <StepInput
+						value="{wmModel>/selectedItem/stepQuantity}"
+						displayValuePrecision="0"
+						min="1"
+						max="{wmModel>/selectedItem/stepMaxQuantity}"
+						step="1"
+						enabled="true"
+						editable="true"
+                        description="Scatola/e"
+						validationMode="LiveChange"
+						change="onChangeStep"/>
                 <Select selectedKey="{wmModel>/selectedItem/uom}" enabled="false">
                     <core:Item key="PC" text="PC - Piece"/>
                     <core:Item key="KG" text="KG - Kilogram"/>
