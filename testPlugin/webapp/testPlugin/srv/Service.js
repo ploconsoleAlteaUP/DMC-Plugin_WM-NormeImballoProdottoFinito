@@ -262,6 +262,30 @@ sap.ui.define([
             });
 
             return aScatole;
+        },
+
+        // {{api_test}}/user/v1/users?plant=PLE1&email=fcimatti@alteanet.it
+        getUserBadge: async function(oView, sPlant, email){            
+            const sUrl = `${DEST_DMC}/user/v1/users`;
+            const oParameters = {
+                plant: sPlant,
+                email: email
+            };
+
+            return await new Promise((resolve, reject) => {
+                AjaxUtil.get(sUrl, oParameters, (oResponseData) => {
+                    const badgeNumber = oResponseData?.badgeNumber;
+                    if (badgeNumber) {
+                        resolve(badgeNumber || badgeNumber);
+                        oView.getModel("wmModel").setProperty("/userBadge", badgeNumber);
+                    } else {
+                        resolve(email)
+                    }
+                }, (oError, sHttpErrorMessage) => {
+                    console.error("getUserBadge:", sHttpErrorMessage);
+                    reject(null);
+                });
+            });
         }
 
     };

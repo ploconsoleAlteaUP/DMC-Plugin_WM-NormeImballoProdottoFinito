@@ -13,6 +13,7 @@
                     <Toolbar height="3rem">
                         <Title id="headerTitle" text="Warehouse Management"/>
                         <ToolbarSpacer/>
+                        <Label text="Badge Number: {wmModel>/userBadge}"/>
                     </Toolbar>
                 </headerToolbar>
                 <content> 

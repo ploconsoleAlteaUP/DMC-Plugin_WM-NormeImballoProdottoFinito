@@ -41,6 +41,9 @@ sap.ui.define([
             let jsonModelWM = new JSONModel({ pallet: 0, scatola: 0, palletscatola: 0, palletBusy: true, scatolaBusy: true, palletscatolaBusy: true, lineItems: [] });
             this.getView().setModel(jsonModelWM, "wmModel");
 
+            // leggo il badge
+            Service.getUserBadge(oController.getView(), sap.dm.dme.util.PlantSettings.getCurrentPlant(), oController.getUserId());
+
             // carico i dati del WM dopo il caricamento effettivo del plugin
             this.loadData();
 
@@ -251,7 +254,7 @@ sap.ui.define([
         },
 
         manageChangeNumberScatola: async function (iNewNumber) {
-            debugger;
+            // debugger;
             //
             if (iNewNumber === oController.actualNumber && oController.isOnConfirmation) {
                 oController.getView().getModel("wmModel").setProperty("/scatoleVersateBusy", true);
@@ -1011,9 +1014,7 @@ sap.ui.define([
         },
 
         isSubscribingToNotifications: function () {
-
             var bNotificationsEnabled = true;
-
             return bNotificationsEnabled;
         },
 
@@ -1022,7 +1023,6 @@ sap.ui.define([
         },
 
         getNotificationMessageHandler: function (sTopic) {
-
             //if (sTopic === "template") {
             //    return this._handleNotificationMessage;
             //}
@@ -1030,7 +1030,6 @@ sap.ui.define([
         },
 
         _handleNotificationMessage: function (oMsg) {
-
             var sMessage = "Message not found in payload 'message' property";
             if (oMsg && oMsg.parameters && oMsg.parameters.length > 0) {
                 for (var i = 0; i < oMsg.parameters.length; i++) {
@@ -1128,6 +1127,6 @@ sap.ui.define([
                 }
 
             }
-        }
+        },
     });
 });
