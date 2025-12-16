@@ -1,0 +1,56 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
+    <Dialog
+        id="postingHistoryDialog"
+        title="View Postings"
+        resizable="true"
+        draggable="true"
+        contentWidth="80%"
+        contentHeight="50%">
+        <VBox class="sapUiSmallMargin">
+            <Table
+                busy="{wmModel>/busyPostings}"
+                items="{
+                    path: 'wmModel>/postingsHistory'
+                }"
+                inset="false"
+                fixedLayout="true"
+                growing="true"
+                growingScrollToLoad="true"
+                growingThreshold="20"
+                updateFinished=".onPostingsUpdateFinished">
+                <columns>
+                    <Column><Text text="Material Number"/></Column>
+                    <Column><Text text="Quantity"/></Column>
+                    <!-- <Column><Text text="Parallel Quantity"/></Column>
+                    <Column><Text text="Batch ID"/></Column> -->
+                    <Column><Text text="Storage Location"/></Column>
+                    <Column><Text text="Posted By"/></Column>
+                    <Column><Text text="Status"/></Column>
+                    <Column><Text text="Posting Date Time"/></Column>
+                    <Column><Text text="Creation Date"/></Column>
+                    <Column><Text text="Comments"/></Column>
+                </columns>
+                <items>
+                    <ColumnListItem>
+                        <cells>
+                            <Text text="{wmModel>material}"/>
+                            <!-- Quantity + Unit -->
+                            <Text text="{= ${wmModel>quantity/value} + ' ' + ${wmModel>quantity/unitOfMeasure/uom} }"/>
+                            <!-- <Text text="{= ${wmModel>parallelQuantity/value} + ' ' + ${wmModel>parallelQuantity/unitOfMeasure/uom} }"/>
+                            <Text text="{wmModel>batchNumber}"/> -->
+                            <Text text="{wmModel>storageLocation}"/>
+                            <Text text="{wmModel>userId}"/>
+                            <Text text="{wmModel>cancellationStatus}"/>
+                            <Text text="{wmModel>postingDateTimeDisplay}"/>
+                            <Text text="{wmModel>createdDateTimeDisplay}"/>
+                            <Text text="{wmModel>comments}"/>
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </VBox>
+        <endButton>
+            <Button text="Close" press=".onCloseDialog"/>
+        </endButton>
+    </Dialog>
+</core:FragmentDefinition>

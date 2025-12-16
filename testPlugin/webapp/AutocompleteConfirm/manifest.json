@@ -1,0 +1,162 @@
+{
+	"_version": "1.12.0",
+	"sap.app": {
+		"id": "altea.dmc.plugin.autocompleteConfirmPlugin",
+		"type": "application",
+		"i18n": "i18n/i18n.properties",
+		"applicationVersion": {
+			"version": "1.0.2"
+		},
+		"title": "{{appTitle}}",
+		"description": "{{appDescription}}",
+		"sourceTemplate": {
+			"id": "html5moduletemplates.basicSAPUI5ApplicationProjectModule",
+			"version": "1.40.12"
+		},
+		"dataSources": {
+			"packingService": {
+				"uri": "/destination/S4H_ODATA_INTEGRATION/",
+				"type": "OData",
+				"settings": {
+					"odataVersion": "2.0"
+				}
+			},
+			"inboundDeliveryService": {
+				"uri": "/destination/S4H_ODATA_INTEGRATION_ODATA4/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/",
+				"type": "OData",
+				"settings": {
+					"odataVersion": "4.0"
+				}
+			},
+			"plantModel": {
+				"uri": "/dme/plant.svc/",
+				"type": "OData",
+				"settings": {
+					"odataVersion": "4.0"
+				}
+			},
+			"demandModel": {
+				"uri": "/dme/demand.svc/",
+				"type": "OData",
+				"settings": {
+					"odataVersion": "4.0"
+				}
+			}
+		}
+	},
+	"sap.ui": {
+		"technology": "UI5",
+		"icons": {
+			"icon": "",
+			"favIcon": "",
+			"phone": "",
+			"phone@2": "",
+			"tablet": "",
+			"tablet@2": ""
+		},
+		"deviceTypes": {
+			"desktop": true,
+			"tablet": true,
+			"phone": true
+		}
+	},
+	"sap.ui5": {
+		"flexEnabled": false,
+		"rootView": {
+			"viewName": "altea.dmc.plugin.autocompleteConfirmPlugin.view.MainView",
+			"type": "XML",
+			"async": true,
+			"id": "MainView"
+		},
+		"dependencies": {
+			"minUI5Version": "1.65.6",
+			"libs": {
+				"sap.ui.core": {},
+				"sap.m": {},
+				"sap.ui.layout": {},
+				"sap.dm.dme.podfoundation": {}
+			}
+		},
+		"contentDensities": {
+			"compact": true,
+			"cozy": true
+		},
+		"models": {
+			"plant": {
+				"dataSource": "plantModel",
+				"settings": {
+					"operationMode": "Server",
+					"synchronizationMode": "None",
+					"groupId": "$direct",
+					"updateGroupId": "update_plant"
+				}
+			},
+			"demand": {
+				"dataSource": "demandModel",
+				"settings": {
+					"operationMode": "Server",
+					"synchronizationMode": "None",
+					"groupId": "$direct",
+					"updateGroupId": "update_demand"
+				}
+			},
+			"i18n": {
+				"type": "sap.ui.model.resource.ResourceModel",
+				"settings": {
+					"bundleName": "altea.dmc.plugin.autocompleteConfirmPlugin.i18n.i18n"
+				}
+			},
+			"": {
+				"dataSource": "packingService",
+				"settings": {
+					"defaultBindingMode": "TwoWay"
+				}
+			},
+			"inboundDelivery": {
+				"dataSource": "inboundDeliveryService",
+				"settings": {
+					"synchronizationMode": "None",
+					"operationMode": "Server",
+					"groupId": "$auto",
+					"updateGroupId": "$auto"
+				}
+			}
+		},
+		"resources": {
+			"css": [
+				{
+					"uri": "css/style.css"
+				}
+			]
+		},
+		"routing": {
+			"config": {
+				"routerClass": "sap.m.routing.Router",
+				"viewType": "XML",
+				"async": true,
+				"viewPath": "altea.dmc.plugin.autocompleteConfirmPlugin.view",
+				"controlAggregation": "pages",
+				"controlId": "app",
+				"clearControlAggregation": false
+			},
+			"routes": [
+				{
+					"name": "RouteMainView",
+					"pattern": "RouteMainView",
+					"target": [
+						"TargetMainView"
+					]
+				}
+			],
+			"targets": {
+				"TargetMainView": {
+					"viewType": "XML",
+					"transition": "slide",
+					"clearControlAggregation": false,
+					"viewId": "MainView",
+					"viewName": "MainView"
+				}
+			}
+		}
+	}
+}

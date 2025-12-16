@@ -195,7 +195,7 @@ sap.ui.define([
                     "ManufacturingOrder": orderData.order,
                     "Type": "B",
                     "Material": orderData?.material?.material,
-                    "StorageBin": oController.getView().getModel("wmModel").getProperty("/selectedItem/workcenter") || orderData?.workcenter,
+                    "StorageBin": orderData?.workcenter,
                     "Pallet": sScatolaPerPallet,
                     "Manuale": isManual,
                     "PackagingMaterial": oController.getView().getModel("wmModel").getProperty("/packingMaterial") || "",
