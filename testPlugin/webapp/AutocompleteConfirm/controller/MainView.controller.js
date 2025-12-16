@@ -42,7 +42,7 @@ sap.ui.define([
             this.getView().setModel(jsonModelWM, "wmModel");
 
             // leggo il badge
-            Service.getUserBadge(oController.getView(), sap.dm.dme.util.PlantSettings.getCurrentPlant(), oController.getUserId());
+            // Service.getUserBadge(oController.getView(), sap.dm.dme.util.PlantSettings.getCurrentPlant(), oController.getUserId());
 
             // carico i dati del WM dopo il caricamento effettivo del plugin
             this.loadData();
