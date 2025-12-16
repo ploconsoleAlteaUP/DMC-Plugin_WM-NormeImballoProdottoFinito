@@ -27,7 +27,8 @@ sap.ui.define([
 			this.addSwitch(oPropertyFormContainer, "postQtyConfirmation", oData);
 
 			this.addInputField(oPropertyFormContainer, "EWMWarehouse", oData);
-			this.addInputField(oPropertyFormContainer, "WarehouseProcessType", oData);
+			this.addInputField(oPropertyFormContainer, "WarehouseProcessTypeA", oData);
+			this.addInputField(oPropertyFormContainer, "WarehouseProcessTypeB", oData);
 
             oFormContainer = oPropertyFormContainer;
 		},
@@ -41,7 +42,8 @@ sap.ui.define([
 				"addQtaScatolaPerPallet": true,
                 "postQtyConfirmation": true,
 				"EWMWarehouse": "2350",
-				"WarehouseProcessType": "Z116"
+				"WarehouseProcessTypeA": "Z115",
+				"WarehouseProcessTypeB": "Z999"
 			};
 		}
 

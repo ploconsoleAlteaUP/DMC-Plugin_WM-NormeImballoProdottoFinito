@@ -147,7 +147,7 @@ sap.ui.define([
             });
         },
 
-        postInboundDelivery: async function (oController, sType, sFunction, isManual=false, iCountOld, WarehouseProcessType) {
+        postInboundDelivery: async function (oController, sType, sFunction, isManual=false, iCountOld, WarehouseProcessType, PackagingMaterial) {
             const sUrl = `${DEST_CAP}/WMInboundDelivery`;
             if (sType === "A") {
 
@@ -201,7 +201,8 @@ sap.ui.define([
                     "PackagingMaterial": oController.getView().getModel("wmModel").getProperty("/packingMaterial") || "",
                     "CountOld": `${iCountOld}`,
                     //"StepQuantity": stepQuantity,
-                    "WarehouseProcessType": WarehouseProcessType
+                    "WarehouseProcessType": WarehouseProcessType,
+                    "PackagingMaterialHU": PackagingMaterial
                 };
 
 

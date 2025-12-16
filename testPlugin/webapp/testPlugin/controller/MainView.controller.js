@@ -11,7 +11,7 @@ sap.ui.define([
 ], function (jQuery, PluginViewController, JSONModel, Fragment, MessageBox, Dialog, formatter, AjaxUtil, Service) {
     "use strict";
 
-    let oController, EWMWarehouse, _TYPE = "", actualNumber = 0, isOnConfirmation = false, WarehouseProcessType = "", _RemainingStepQuantity = 0;
+    let oController, EWMWarehouse, _TYPE = "", actualNumber = 0, isOnConfirmation = false, WarehouseProcessTypeA = "", WarehouseProcessTypeB = "", _RemainingStepQuantity = 0, PackagingMaterial = "";
     return PluginViewController.extend("altea.dmc.plugin.testPlugin.testPlugin.controller.MainView", {
         formatter: formatter,
 
@@ -35,7 +35,8 @@ sap.ui.define([
             this.getView().byId("qtyPalletScatola").setVisible(this.getConfiguration().addQtaScatolaPerPallet);
             this.getView().byId("headerTitle").setText(this.getConfiguration().title);
             EWMWarehouse = this.getConfiguration().EWMWarehouse;
-            WarehouseProcessType = this.getConfiguration().WarehouseProcessType;
+            WarehouseProcessTypeA = this.getConfiguration().WarehouseProcessTypeA;
+            WarehouseProcessTypeB = this.getConfiguration().WarehouseProcessTypeB;
 
             // creo il modello di appoggio per il plugin
             let jsonModelWM = new JSONModel({ pallet: 0, scatola: 0, palletscatola: 0, palletBusy: true, scatolaBusy: true, palletscatolaBusy: true, lineItems: [] });
@@ -132,6 +133,12 @@ sap.ui.define([
                                 }
                             }
                             qtaPallet = qtaScatola * qtaScatolePallet;
+
+                            try {
+                                PackagingMaterial = aPacking[0].to_PackingInstructionComponent.results.filter(a => a.PackingInstructionItemCategory === "P")[0].Material
+                            } catch (error) {
+
+                            }
 
                             // assegno i valori ai rispettivi oggetti della view
                             that.getView().getModel("wmModel").setProperty("/pallet", qtaPallet);
@@ -575,7 +582,7 @@ sap.ui.define([
                 //    sap.ui.core.BusyIndicator.hide();
                 //}
 
-            }, true, undefined, WarehouseProcessType);
+            }, true, undefined, WarehouseProcessTypeB, PackagingMaterial);
         },
 
         wait: async function (ms) {
@@ -654,7 +661,7 @@ sap.ui.define([
                             sap.ui.core.BusyIndicator.hide();
                         }
 
-                    }, false, iCountOld, WarehouseProcessType);
+                    }, false, iCountOld, (_TYPE === "A" ? WarehouseProcessTypeA : WarehouseProcessTypeB), PackagingMaterial);
                 } else {
                     sap.ui.core.BusyIndicator.hide();
                 }
