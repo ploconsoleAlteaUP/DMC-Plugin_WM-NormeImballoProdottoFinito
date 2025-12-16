@@ -743,7 +743,7 @@ sap.ui.define([
 
                 const that = this;
 
-                for (var i = 0; i < Number(isManual ? oController.getView().getModel("wmModel").getProperty("/scatoleVersate") : oController.getView().getModel("wmModel").getProperty("/palletscatola")); i++) {
+                for (var i = 0; i < Number(isManual ? oController.getView().getModel("wmModel").getProperty("/scatoleVersate") : (oController.getView().getModel("wmModel").getProperty("/palletscatola") === 0 ? 1 : oController.getView().getModel("wmModel").getProperty("/palletscatola"))); i++) {
                     AjaxUtil.post(
                         sUrl,
                         payload,
