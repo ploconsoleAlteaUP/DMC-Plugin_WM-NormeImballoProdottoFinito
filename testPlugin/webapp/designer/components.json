@@ -25,6 +25,17 @@
 			"productionProcessEnabled": true,
 			"productionProcessTitle": "autocompleteConfirm",
 			"supportedPodTypes": ["WORK_CENTER","OPERATION","ORDER","OTHER","MONITOR"]
+		},
+		{
+			"id": "assemblyQuantityAsRequired ",
+			"type": "VIEW_PLUGIN",
+			"allowMultipleInstances": false,
+			"name": "altea.dmc.plugin.testPlugin.assemblyQuantityAsRequired",
+			"propertyEditor": "altea.dmc.plugin.testPlugin.assemblyQuantityAsRequired.builder.PropertyEditor",
+			"i18n": "altea.dmc.plugin.testPlugin.assemblyQuantityAsRequired.i18n.i18n",
+			"productionProcessEnabled": true,
+			"productionProcessTitle": "assemblyQuantityAsRequired",
+			"supportedPodTypes": ["WORK_CENTER","OPERATION","ORDER","OTHER","MONITOR"]
 		}
 	]
 }
