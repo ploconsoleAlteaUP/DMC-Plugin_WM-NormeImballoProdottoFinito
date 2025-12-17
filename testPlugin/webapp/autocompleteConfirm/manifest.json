@@ -1,7 +1,7 @@
 {
 	"_version": "1.12.0",
 	"sap.app": {
-		"id": "altea.dmc.plugin.autocompleteConfirmPlugin",
+		"id": "altea.dmc.plugin.testPlugin.autocompleteConfirm",
 		"type": "application",
 		"i18n": "i18n/i18n.properties",
 		"applicationVersion": {
@@ -63,7 +63,7 @@
 	"sap.ui5": {
 		"flexEnabled": false,
 		"rootView": {
-			"viewName": "altea.dmc.plugin.autocompleteConfirmPlugin.view.MainView",
+			"viewName": "altea.dmc.plugin.testPlugin.autocompleteConfirm.view.MainView",
 			"type": "XML",
 			"async": true,
 			"id": "MainView"
@@ -103,7 +103,7 @@
 			"i18n": {
 				"type": "sap.ui.model.resource.ResourceModel",
 				"settings": {
-					"bundleName": "altea.dmc.plugin.autocompleteConfirmPlugin.i18n.i18n"
+					"bundleName": "altea.dmc.plugin.testPlugin.autocompleteConfirm.i18n.i18n"
 				}
 			},
 			"": {
@@ -134,7 +134,7 @@
 				"routerClass": "sap.m.routing.Router",
 				"viewType": "XML",
 				"async": true,
-				"viewPath": "altea.dmc.plugin.autocompleteConfirmPlugin.view",
+				"viewPath": "altea.dmc.plugin.testPlugin.autocompleteConfirm.view",
 				"controlAggregation": "pages",
 				"controlId": "app",
 				"clearControlAggregation": false

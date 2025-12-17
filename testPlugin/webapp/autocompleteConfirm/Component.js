@@ -4,7 +4,7 @@ sap.ui.define([
 ], function (ProductionUIComponent, Device) {
 	"use strict";
 
-	return ProductionUIComponent.extend("altea.dmc.plugin.autocompleteConfirmPlugin.Component", {
+	return ProductionUIComponent.extend("altea.dmc.plugin.testPlugin.autocompleteConfirm.Component", {
 		metadata: {
 			manifest: "json"
 		}

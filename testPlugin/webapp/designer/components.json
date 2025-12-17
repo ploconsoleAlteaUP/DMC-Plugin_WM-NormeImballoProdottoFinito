@@ -16,19 +16,15 @@
 			]
 		},
 		{
-			"id": "autocompleteConfirmPlugin",
+			"id": "autocompleteConfirm",
 			"type": "VIEW_PLUGIN",
 			"allowMultipleInstances": false,
-			"name": "altea.dmc.plugin.autocompleteConfirmPlugin",
-			"propertyEditor": "altea.dmc.plugin.autocompleteConfirmPlugin.builder.PropertyEditor",
-			"i18n": "altea.dmc.plugin.autocompleteConfirmPlugin.i18n.i18n",
+			"name": "altea.dmc.plugin.testPlugin.autocompleteConfirm",
+			"propertyEditor": "altea.dmc.plugin.testPlugin.autocompleteConfirm.builder.PropertyEditor",
+			"i18n": "altea.dmc.plugin.testPlugin.autocompleteConfirm.i18n.i18n",
 			"productionProcessEnabled": true,
-			"productionProcessTitle": "autocompleteConfirmPlugin",
-			"supportedPodTypes": [
-				"WORK_CENTER",
-				"OPERATION",
-				"ORDER"
-			]
+			"productionProcessTitle": "autocompleteConfirm",
+			"supportedPodTypes": ["WORK_CENTER","OPERATION","ORDER","OTHER","MONITOR"]
 		}
 	]
 }

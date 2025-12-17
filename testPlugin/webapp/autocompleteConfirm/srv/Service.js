@@ -26,7 +26,7 @@ sap.ui.define([
                     const results = oResponseData.steps.filter(a => a.stepRouting.routing === sRouterID);
                     if (!!!!results && results.length > 0) {
                         resolve(results[0].resource || results[0].plannedWorkCenter);
-                        
+
                         oView.getModel("wmModel").getProperty("/lineItems")[0]["workcenter"] = results[0].resource === null ? results[0].plannedWorkCenter : results[0].resource;
                     } else {
                         resolve(null)
@@ -54,11 +54,11 @@ sap.ui.define([
                 },
                 success: function (oData) {
                     //aggiornare view e mostrare il messaggio di success
-                    
+
                 },
                 error: function (oError) {
                     //Mostrare errore
-                    
+
                 }
             });
 
@@ -70,11 +70,11 @@ sap.ui.define([
                 },
                 success: function (oData) {
                     //aggiornare view e mostrare il messaggio di success
-                    
+
                 },
                 error: function (oError) {
                     //Mostrare errore
-                    
+
                 }
             });
         },
@@ -96,7 +96,7 @@ sap.ui.define([
 
             return await new Promise((resolve, reject) => {
                 AjaxUtil.get(sUrl + sFilters, undefined, (oResponseData) => {
-                    
+
                     const details = oResponseData?.value;
                     /*const results = oResponseData.steps.filter(a => a.stepRouting.routing === sRouterID);*/
                     if (!!!!details && details.length > 0) {
@@ -119,7 +119,7 @@ sap.ui.define([
             const sFilters = `$filter=EWMWarehouse eq '${EWMWarehouse}' and ManufacturingOrder eq '${sOrder}' and GoodsReceiptStatus eq '1'&$count=true`;
             return await new Promise((resolve, reject) => {
                 AjaxUtil.get(`${sUrl}?${sFilters}`, undefined, (oResponseData) => {
-                    
+
                     const details = oResponseData?.value;
                     /*const results = oResponseData.steps.filter(a => a.stepRouting.routing === sRouterID);*/
                     if (!!!!details) {
@@ -139,15 +139,15 @@ sap.ui.define([
             const sUrl = `${DEST_CAP}/$metadata`;
             AjaxUtil.get(sUrl, undefined, function (oData) {
                 //aggiornare view e mostrare il messaggio di success
-                
+
             },
-            function (oError) {
-                //Mostrare errore
-                
-            });
+                function (oError) {
+                    //Mostrare errore
+
+                });
         },
 
-        postInboundDelivery: async function (oController, sType, sFunction, isManual=false, iCountOld, WarehouseProcessType) {
+        postInboundDelivery: async function (oController, sType, sFunction, isManual = false, iCountOld, WarehouseProcessType) {
             const sUrl = `${DEST_CAP}/WMInboundDelivery`;
             if (sType === "A") {
 
@@ -164,14 +164,14 @@ sap.ui.define([
 
                 AjaxUtil.post(sUrl, payload, async function (oData) {
                     //aggiornare view e mostrare il messaggio di success
-                    
+
                     if (!!!!sFunction) {
                         await sFunction("success", "", oData.proceed);
                     }
                 },
                     async function (oError) {
                         //Mostrare errore
-                        
+
                         if (!!!!sFunction) {
                             await sFunction("error", "Si è verificato un errore nel versamento.\nContattare un responsabile");
                         }
@@ -207,7 +207,7 @@ sap.ui.define([
 
                 AjaxUtil.post(sUrl, payload, function (oData) {
                     //aggiornare view e mostrare il messaggio di success
-                    
+
                     if (!!!!sFunction) {
                         if (oData.status === "success") {
                             sFunction("success", "", oData.proceed);
@@ -219,7 +219,7 @@ sap.ui.define([
                 },
                     function (oError) {
                         //Mostrare errore
-                        
+
                         if (!!!!sFunction) {
                             sFunction("error", "Si è verificato un errore nel versamento.\nContattare un responsabile");
                         }
@@ -265,7 +265,7 @@ sap.ui.define([
         },
 
         // {{api_test}}/user/v1/users?plant=PLE1&email=fcimatti@alteanet.it
-        getUserBadge: async function(oView, sPlant, email){            
+        getUserBadge: async function (oView, sPlant, email) {
             const sUrl = `${DEST_DMC}/user/v1/users`;
             const oParameters = {
                 plant: sPlant,
@@ -286,7 +286,101 @@ sap.ui.define([
                     reject(null);
                 });
             });
-        }
+        },
+
+        loadAllData: async function (sPlant, fCompleted, oProgress) {
+            let aAllResults = [];
+            let iPage = 0;
+            let bLast = false;
+
+            oProgress.setText("0% - Caricamento...");
+
+            while (!bLast) {
+                const oResponse = await this._loadPage(iPage, sPlant);
+
+                // qui dipende dal campo reale che contiene i dati
+                // suppongo sia "content"
+                if (Array.isArray(oResponse.content)) {
+                    aAllResults = aAllResults.concat(oResponse.content);
+                }
+
+                let totPages = oResponse.totalPages;
+
+                bLast = oResponse.last === true;
+                iPage++;
+
+                oProgress.setText(`${Math.floor((100 * iPage) / totPages)}% - Caricamento...`);
+            }
+
+            fCompleted(aAllResults);
+
+            return aAllResults;
+        },
+
+        _loadPage: function (iPage, sPlant) {
+            const sUrl = `${DEST_DMC}/material/v2/materials?plant=${sPlant}&page=${iPage}`;
+
+            return new Promise((resolve, reject) => {
+                AjaxUtil.get(
+                    sUrl,
+                    undefined,
+                    (oResponseData) => {
+                        resolve(oResponseData);
+                    },
+                    (oError, sHttpErrorMessage) => {
+                        reject(sHttpErrorMessage || oError);
+                    }
+                );
+            });
+        },
+
+        autocomplete: async function (oController, fCompleted, oProgress) {
+            const sUrl = `${DEST_DMC}/material/v1/materials`;
+
+            let aPayload = oController
+                .getView()
+                .getModel("toModModel")
+                .getProperty("/daModificare");
+
+            const iTotal = aPayload.length;
+            let iProcessed = 0;
+
+            oProgress.setText("0% - Modifica attributo isAutocompleteAndConfirmed..");
+
+            for (const oItem of aPayload) {
+                oItem.isAutocompleteAndConfirmed = false;
+
+                await this._patchSingleItem(sUrl, oItem);
+
+                iProcessed++;
+
+                oProgress.setText(
+                    `${Math.floor((100 * iProcessed) / iTotal)}% - Modifica attributo isAutocompleteAndConfirmed..`
+                );
+            }
+
+            oProgress.setText("100% - Completato");
+
+            if (typeof fCompleted === "function") {
+                fCompleted("success", aPayload);
+            }
+        },
+
+        _patchSingleItem: function (sUrl, oItem) {
+            return new Promise((resolve, reject) => {
+                AjaxUtil.patch(
+                    sUrl,
+                    [oItem],
+                    function (oData) {
+                        resolve(oData);
+                    },
+                    function (oError) {
+                        reject(oError);
+                    }
+                );
+            });
+        },
+
 
     };
 });
