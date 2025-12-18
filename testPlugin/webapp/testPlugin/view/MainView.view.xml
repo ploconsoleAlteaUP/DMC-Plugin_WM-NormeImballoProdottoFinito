@@ -51,7 +51,7 @@
                         
                         <columns>
                             <Column><Text text="Material No."/></Column>
-                            <Column><Text text="Description"/></Column>
+                            <Column><Text text="Descri"/></Column>
                             <Column><Text text="Storage Location"/></Column>
                             <Column hAlign="End" visible="false"><Text text="Posted Quantity"/></Column>
                             <Column hAlign="Center"></Column>

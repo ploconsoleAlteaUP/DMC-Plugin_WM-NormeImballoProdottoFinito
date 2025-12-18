@@ -150,8 +150,6 @@ sap.ui.define([
                                 that.getView().getModel("wmModel").setProperty("/packingMaterial", "");
                             }
 
-
-                            // TODO: quando sarà presente sfruttare il controllo di una variabile globare che screma i casi A e B
                             if (Number(qtaScatola) !== 0) {
                                 // settare il counter delle scatole versate 
                                 that.setScatoleVersate();
@@ -555,13 +553,11 @@ sap.ui.define([
         },
 
         onConfermaChiusuraManuale: async function (oEvent) {
-
             try {
                 oController.oManualClosingConfirmDialog.close();
             } catch (error) {
 
             }
-
 
             sap.ui.core.BusyIndicator.show(0);
 
@@ -589,7 +585,6 @@ sap.ui.define([
             return new Promise(resolve => setTimeout(resolve, ms));
         },
 
-        // TO TEST
         /*  1- chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
             2- chiamare POST postErpGoodsReceiptsUsingPOST_2
             3- solo se se la postErpGoodsReceiptsUsingPOST_2 va a buon fine chiamare GET Warehouse_Inbound_Delivery_Item a polling per massimo 10 secondi
@@ -608,7 +603,6 @@ sap.ui.define([
             } catch (error) {
 
             }
-
 
             // Close dialog
             if (this._oGoodsReceiptDialog) {
@@ -639,10 +633,6 @@ sap.ui.define([
                     const podSelectionModel = this.getPodSelectionModel();
                     const orderData = podSelectionModel.selectedOrderData;
                     var iCountOld = await Service.getCountInboundDelivery(oController, EWMWarehouse, orderData.order);
-
-
-
-
 
                     await Service.postInboundDelivery(oController, _TYPE, async function (sType, sMessage, bProceede) {
 
@@ -706,6 +696,7 @@ sap.ui.define([
                 return res;
             }
         },
+
         // se switch 'postQtyConfirmation' è ON chiama https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
         // la standard fa https://sap-dmc-test-n3lov8wp.execution.eu20-quality.web.dmc.cloud.sap/sapdmdmepod/~80d9e20e-6f47-44c7-9bcb-36549b837c9b~/dme/production-ms/quantityConfirmation/confirm
         postQtyConfirmation: async function (isManual = false) {
@@ -756,8 +747,6 @@ sap.ui.define([
                         payload,
                         function (oResponseData) {
                             console.log("POST Quantity Confirmation - Success");
-
-
                             that.setScatoleVersate(oData.workcenter || orderData.workcenter);
                         },
                         function (oError, sHttpErrorMessage) {
@@ -841,7 +830,6 @@ sap.ui.define([
             });
         },
 
-        // TO TEST 
         // chiama https://api.sap.com/api/WAREHOUSEINBOUNDDELIVERY_0001/path/get_WhseInboundDeliveryItem a polling per massimo 10 secondi per recuperare EWMInboundDelivery 
         /*getWmInboundDeliveryItem: function () {
             const MAX_DURATION = 10000; // 10 secondi
@@ -910,7 +898,6 @@ sap.ui.define([
             });
         },*/
 
-        // TO TEST
         // chiama https://api.sap.com/api/WAREHOUSEINBOUNDDELIVERY_0001/path/get_WhseInboundDeliveryItem per il valore di EWMInboundDelivery appena ricavato per registrare l’entrata merci su SAP per ogni EWMInboundDelivery trovata
         // N.B: eseguirlo in loop se sono stati eccezionalmente trovati più valori
         /*postWmInboundDeliveryItem: async function (EWMInboundDeliveryArray) {
@@ -977,11 +964,14 @@ sap.ui.define([
             this.subscribe("orderSelectionEvent", this._SummaryData, this);
 
             // eventi per start, hold e complete avvenuti con successo
-            // successo di complete o di hold => disabilitare recordBtn e manualBtn
-            // successo di start => abilitare recordBtn e manualBtn
+            // successo di Complete o di Hold => disabilitare recordBtn e manualBtn
+            // successo di Start => abilitare recordBtn e manualBtn
             this.subscribe("phaseStartEvent", this.handleRecordAndManualClosing, this);
             this.subscribe("phaseCompleteEvent", this.handleRecordAndManualClosing, this);
             this.subscribe("phaseHoldEvent", this.handleRecordAndManualClosing, this);
+
+            // press su Complete
+            this.subscribe("phasePressStartEvent", this.handlePhaseCompletePress, this);
 
             var oView = this.getView();
             if (!oView) {
@@ -1014,7 +1004,6 @@ sap.ui.define([
             sap.m.MessageBox.information("Number of SFC selected - " + oData.selections.length);
         },
 
-        // TO FIX
         handleRecordAndManualClosing: function (sChannelId, sEventId, oData) {
             console.log("handleRecordAndManualClosing per l'evento " + sEventId);
             this.setEnabledRecordAndManualClosing(sEventId);
@@ -1065,6 +1054,7 @@ sap.ui.define([
             this.unsubscribe("phaseStartEvent", this.handleRecordAndManualClosing, this);
             this.unsubscribe("phaseCompleteEvent", this.handleRecordAndManualClosing, this);
             this.unsubscribe("phaseHoldEvent", this.handleRecordAndManualClosing, this);
+            this.unsubscribe("phasePressCompleteEvent", this.handlePhaseCompletePress, this);
         },
 
         getGoodsReceiptData: function () {
@@ -1097,6 +1087,7 @@ sap.ui.define([
         //         oController.getView().byId("recordBtn").setEnabled(true);
         //     }
         // }
+
         setEnabledRecordAndManualClosing: function (sEventId) {
             try {
                 let bEnable;
@@ -1135,5 +1126,38 @@ sap.ui.define([
 
             }
         },
+
+        // TO TEST
+        handlePhaseCompletePress: function(sChannelId, sEventId, oData) {
+            console.log("handlePhaseCompletePress per l'evento " + sEventId);
+            
+            if (_TYPE === "B") {
+                // caso scatole versate > 0
+                var sConfirm = oController.getI18nText("confirm");
+
+                MessageBox.confirm(oController.getI18nText("completeConfirmation"), {
+				    actions: [sConfirm, oController.getI18nText("cancel")],
+                    onClose: function(oAction) {
+                        if (oAction === sConfirm) {
+                            // TO FIX
+                            // richiamare la Chiusura HU manuale
+                            // oController.onConfermaChiusuraManuale()
+                            //     .then(function(res){
+                                    // solo in caso di chiusura con successo richiamare la funzione standard del press su Complete button
+                                    oData.complete();
+                                // })
+                                // .catch(function(err){
+                                //     console.log("");
+                                // })
+                        }
+                    }.bind(oController),
+				    dependentOn: oController.getView()
+                });
+
+            } else {
+                // avviare la funzione standard del press su Complete button
+                oData.complete();
+            }
+        }
     });
 });
