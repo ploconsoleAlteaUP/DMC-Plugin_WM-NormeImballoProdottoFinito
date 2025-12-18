@@ -23,6 +23,8 @@ sap.ui.define([
 
 			this.addInputField(oPropertyFormContainer, "EWMWarehouse", oData);
 
+			this.addSwitch(oPropertyFormContainer, "AvvioAutomatico", oData);
+
             oFormContainer = oPropertyFormContainer;
 		},
 		
@@ -31,6 +33,7 @@ sap.ui.define([
 				
                 "title": "Autocomplete & Confirm",
 				"EWMWarehouse": "PLE1",
+				"AvvioAutomatico": false
 			};
 		}
 

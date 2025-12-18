@@ -11,7 +11,7 @@ sap.ui.define([
 ], function (jQuery, PluginViewController, JSONModel, Fragment, MessageBox, Dialog, formatter, AjaxUtil, Service) {
     "use strict";
 
-    let oController, EWMWarehouse;
+    let oController, EWMWarehouse, isAuto = false;
     return PluginViewController.extend("altea.dmc.plugin.testPlugin.autocompleteConfirm.controller.MainView", {
         formatter: formatter,
 
@@ -40,6 +40,7 @@ sap.ui.define([
             // assegno i valori passati dal componente (quello di configurazione)
             oController.getView().byId("headerTitle").setText(this.getConfiguration().title);
             EWMWarehouse = oController.getConfiguration().EWMWarehouse;
+            isAuto = oController.getConfiguration().AvvioAutomatico;
 
             // creo il modello di appoggio per il plugin
             let jsonModelWM = new JSONModel({ qtyTotale: 0, qtyDaModificare: 0, qtyModificata: 0, qtyTotaleBusy: false, qtyDaModificareBusy: false, qtyModificataBusy: false, lineItems: [] });
@@ -67,7 +68,13 @@ sap.ui.define([
                 oController._busyDialog.close();
                 oController.getView().getModel("wmModel").setProperty("/qtyTotaleBusy", false);
                 oController.getView().getModel("wmModel").setProperty("/qtyDaModificareBusy", false);
-                oController.getView().getModel("enableModel").setProperty("/eseguiBtn", true);
+                oController.getView().getModel("enableModel").setProperty("/eseguiBtn", aManufactured.length > 0);
+
+                // Controllo se c'è l'avvio automatico
+                if(isAuto && aManufactured.length > 0) {
+                    oController.onEseguiAutocomplete();
+                }
+
             }, this._busyDialog);
         },
 
