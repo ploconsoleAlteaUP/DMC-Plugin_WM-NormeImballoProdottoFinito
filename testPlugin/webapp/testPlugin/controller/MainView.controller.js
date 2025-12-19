@@ -553,7 +553,7 @@ sap.ui.define([
         },
 
         // OLD
-        onConfermaChiusuraManuale: async function (oEvent) {
+        /*onConfermaChiusuraManuale: async function (oEvent) {
             try {
                 if (oController.oManualClosingConfirmDialog) {
                     oController.oManualClosingConfirmDialog.close();
@@ -583,6 +583,7 @@ sap.ui.define([
 
             }, true, undefined, WarehouseProcessTypeB, PackagingMaterial);
         },
+        */
 
         // NEW TO TEST
         onConfermaChiusuraManuale: async function (oEvent) {
@@ -1047,6 +1048,11 @@ sap.ui.define([
         handleRecordAndManualClosing: function (sChannelId, sEventId, oData) {
             console.log("handleRecordAndManualClosing per l'evento " + sEventId);
             this.setEnabledRecordAndManualClosing(sEventId);
+
+            // hide busy indicator
+            if (sEventId === "phaseCompleteEvent"){
+                sap.ui.core.BusyIndicator.hide();
+            }
         },
 
         isSubscribingToNotifications: function () {
@@ -1190,19 +1196,22 @@ sap.ui.define([
             });
         },
 
-        // TO FIX
         closeAndComplete: function(oData){
             // richiamare la Chiusura HU manuale e attendere il lancio di tutti i postQtyConfirmation
-            // oController.onConfermaChiusuraManuale()
-            //     .then(function(res){
-            //         // solo in caso di chiusura con successo attendere 2 minuti e richiamare la funzione standard del press su Complete button
-            //         setTimeout(function() { 
+            oController.onConfermaChiusuraManuale()
+                .then(function(res){
+                    // Show busy indicator
+                    sap.ui.core.BusyIndicator.show(0);
+
+                    // solo in caso di chiusura con successo attendere 2 minuti e richiamare la funzione standard del press su Complete button
+                    setTimeout(function() { 
                         oData.complete(); 
-                //     }, 120000);
-                // })
-                // .catch(function(err){
-                //     console.log("");
-                // })
+                    }, 120000);
+                })
+                .catch(function(err){
+                    sap.ui.core.BusyIndicator.hide();
+                    console.error("Errore in closeAndComplete:", err);
+                })
         }
     });
 });
