@@ -971,7 +971,7 @@ sap.ui.define([
             this.subscribe("phaseHoldEvent", this.handleRecordAndManualClosing, this);
 
             // press su Complete
-            this.subscribe("phasePressStartEvent", this.handlePhaseCompletePress, this);
+            this.subscribe("phasePressCompleteEvent", this.handlePhaseCompletePress, this);
 
             var oView = this.getView();
             if (!oView) {
