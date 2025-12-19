@@ -15,7 +15,10 @@ modules:
     CORS: "[{\"uriPattern\": \"^/testPlugin/(.*)$\",\"allowedOrigin\": [
            {\"host\": \"sap-dmc-test-n3lov8wp.execution.eu20-quality.web.dmc.cloud.sap\",\"protocol\": \"https\"},
            {\"host\": \"sap-dmc-test-n3lov8wp.authentication.eu20.hana.ondemand.com\",\"protocol\": \"https\"},
-           {\"host\": \"sunino-spa-sap-dmc-test-cap-dmc-wm-srv.cfapps.eu20-001.hana.ondemand.com\",\"protocol\": \"https\"}],
+           {\"host\": \"sap-dmc-prod.execution.eu20-prod.web.dmc.cloud.sap\",\"protocol\": \"https\"},
+           {\"host\": \"sap-dmc-prod.authentication.eu20.hana.ondemand.com\",\"protocol\": \"https\"},
+           {\"host\": \"sunino-spa-sap-dmc-test-cap-dmc-wm-srv.cfapps.eu20-001.hana.ondemand.com\",\"protocol\": \"https\"},
+           {\"host\": \"sap-dmc-prod-sap-dmc-prod-cap-dmc-wm-srv.cfapps.eu20-001.hana.ondemand.com\",\"protocol\": \"https\"}],
            \"allowedMethods\": [\"GET\",\"OPTIONS\"],
            \"allowedHeaders\":[\"Origin\", \"Accept\",\"X-Requested-With\",\"Content-Type\",
            \"Access-Control-Request-Method\",\"Access-Control-Request-Headers\",\"Authorization\",
