@@ -552,9 +552,12 @@ sap.ui.define([
             }
         },
 
-        onConfermaChiusuraManuale: async function (oEvent) {
+        // OLD
+        /*onConfermaChiusuraManuale: async function (oEvent) {
             try {
-                oController.oManualClosingConfirmDialog.close();
+                if (oController.oManualClosingConfirmDialog) {
+                    oController.oManualClosingConfirmDialog.close();
+                }
             } catch (error) {
 
             }
@@ -579,6 +582,44 @@ sap.ui.define([
                 //}
 
             }, true, undefined, WarehouseProcessTypeB, PackagingMaterial);
+        },
+        */
+
+        // NEW TO TEST
+        onConfermaChiusuraManuale: async function (oEvent) {
+            return new Promise(async (resolve, reject) => {
+                if (oController.oManualClosingConfirmDialog) {
+                    oController.oManualClosingConfirmDialog.close();
+                }
+
+                sap.ui.core.BusyIndicator.show(0);
+
+                await Service.postInboundDelivery(oController, "B", async function (sType, sMessage, bProceede) {
+                    oController.getGoodsReceiptData();
+
+                    if (sType === "success") {
+                        sap.m.MessageToast.show(`Chiusura pallet effettuata con successo`);
+                    } else {
+                        sap.m.MessageBox.error(sMessage);
+                    }
+
+                    // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
+                    //if (bProceede) {
+                    await oController.postQtyConfirmation(true);
+                    sap.ui.core.BusyIndicator.hide();
+                    //} else {
+                    //    sap.ui.core.BusyIndicator.hide();
+                    //}
+
+                    // Resolve o reject in base all'esito
+                    if (sType === "success") {
+                        resolve();
+                    } else {
+                        reject(sMessage);
+                    }
+
+                }, true, undefined, WarehouseProcessTypeB, PackagingMaterial);
+            });
         },
 
         wait: async function (ms) {
@@ -1007,6 +1048,11 @@ sap.ui.define([
         handleRecordAndManualClosing: function (sChannelId, sEventId, oData) {
             console.log("handleRecordAndManualClosing per l'evento " + sEventId);
             this.setEnabledRecordAndManualClosing(sEventId);
+
+            // hide busy indicator
+            if (sEventId === "phaseCompleteEvent"){
+                sap.ui.core.BusyIndicator.hide();
+            }
         },
 
         isSubscribingToNotifications: function () {
@@ -1127,37 +1173,45 @@ sap.ui.define([
             }
         },
 
-        // TO TEST
         handlePhaseCompletePress: function(sChannelId, sEventId, oData) {
             console.log("handlePhaseCompletePress per l'evento " + sEventId);
-            
-            if (_TYPE === "B") {
-                // caso scatole versate > 0
-                var sConfirm = oController.getI18nText("confirm");
-
-                MessageBox.confirm(oController.getI18nText("completeConfirmation"), {
-				    actions: [sConfirm, oController.getI18nText("cancel")],
-                    onClose: function(oAction) {
-                        if (oAction === sConfirm) {
-                            // TO FIX
-                            // richiamare la Chiusura HU manuale
-                            // oController.onConfermaChiusuraManuale()
-                            //     .then(function(res){
-                                    // solo in caso di chiusura con successo richiamare la funzione standard del press su Complete button
-                                    oData.complete();
-                                // })
-                                // .catch(function(err){
-                                //     console.log("");
-                                // })
-                        }
-                    }.bind(oController),
-				    dependentOn: oController.getView()
-                });
-
+            if (_TYPE === "B" && oController.getView().getModel("wmModel").getProperty("/scatoleVersate") > 0) {
+                oController.showConfirmBox(oController.getI18nText("boxNotRecorder"), function() { oController.closeAndComplete(oData); });
             } else {
-                // avviare la funzione standard del press su Complete button
-                oData.complete();
+                // mostrare message box di conferma e al click su Conferma avviare la funzione standard del press su Complete button
+                oController.showConfirmBox(oController.getI18nText("completeConfirmation"), oData.complete);
             }
+        },
+
+        showConfirmBox: function(text, callback){
+            var sConfirm = oController.getI18nText("confirm");
+            MessageBox.confirm(text, {
+                actions: [sConfirm, oController.getI18nText("cancel")],
+                onClose: function(oAction) {
+                    if (oAction === sConfirm) {
+                        callback();
+                    }
+                }.bind(oController),
+                dependentOn: oController.getView()
+            });
+        },
+
+        closeAndComplete: function(oData){
+            // richiamare la Chiusura HU manuale e attendere il lancio di tutti i postQtyConfirmation
+            oController.onConfermaChiusuraManuale()
+                .then(function(res){
+                    // Show busy indicator
+                    sap.ui.core.BusyIndicator.show(0);
+
+                    // solo in caso di chiusura con successo attendere 2 minuti e richiamare la funzione standard del press su Complete button
+                    setTimeout(function() { 
+                        oData.complete(); 
+                    }, 120000);
+                })
+                .catch(function(err){
+                    sap.ui.core.BusyIndicator.hide();
+                    console.error("Errore in closeAndComplete:", err);
+                })
         }
     });
 });
