@@ -4,15 +4,15 @@
     <Dialog
         id="confirmManualClosingDialog"
         type="Message"
-        title="Conferma chiusura manuale">
+        title="{i18n>ManualClose.title}">
         <content>
-            <Text text="Vuoi avviare la chiusura manuale?"/>
+            <Text text="{i18n>ManualClose.text}"/>
         </content>
         <beginButton>
-            <Button text="Ok" press=".onConfermaChiusuraManuale"/>
+            <Button text="{i18n>ManualClose.btn.conf}" press=".onConfermaChiusuraManuale"/>
         </beginButton>
         <endButton>
-            <Button text="Annulla" press=".onCloseDialog"/>
+            <Button text="{i18n>ManualClose.btn.canc}" press=".onCloseDialog"/>
         </endButton>
     </Dialog>
 </core:FragmentDefinition>

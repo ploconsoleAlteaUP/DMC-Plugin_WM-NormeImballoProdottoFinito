@@ -1,7 +1,7 @@
 <core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core">
     <Dialog
         id="postingHistoryDialog"
-        title="View Postings"
+        title="{i18n>PostHistory.Title}"
         resizable="true"
         draggable="true"
         contentWidth="80%"
@@ -19,16 +19,16 @@
                 growingThreshold="20"
                 updateFinished=".onPostingsUpdateFinished">
                 <columns>
-                    <Column><Text text="Material Number"/></Column>
-                    <Column><Text text="Quantity"/></Column>
+                    <Column><Text text="{i18n>PostHistory.Table.MatNum}"/></Column>
+                    <Column><Text text="{i18n>PostHistory.Table.Qty}"/></Column>
                     <!-- <Column><Text text="Parallel Quantity"/></Column>
                     <Column><Text text="Batch ID"/></Column> -->
-                    <Column><Text text="Storage Location"/></Column>
-                    <Column><Text text="Posted By"/></Column>
-                    <Column><Text text="Status"/></Column>
-                    <Column><Text text="Posting Date Time"/></Column>
-                    <Column><Text text="Creation Date"/></Column>
-                    <Column><Text text="Comments"/></Column>
+                    <Column><Text text="{i18n>PostHistory.Table.Sto}"/></Column>
+                    <Column><Text text="{i18n>PostHistory.Table.PosBy}"/></Column>
+                    <Column><Text text="{i18n>PostHistory.Table.Stat}"/></Column>
+                    <Column><Text text="{i18n>PostHistory.Table.PosDate}"/></Column>
+                    <Column><Text text="{i18n>PostHistory.Table.CraDat}"/></Column>
+                    <Column><Text text="{i18n>PostHistory.Table.Comm}"/></Column>
                 </columns>
                 <items>
                     <ColumnListItem>

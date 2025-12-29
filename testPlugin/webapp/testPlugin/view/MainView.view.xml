@@ -11,29 +11,29 @@
                 class="sapUiNoContentPadding">  
                 <headerToolbar>
                     <Toolbar height="3rem">
-                        <Title id="headerTitle" text="Warehouse Management"/>
+                        <Title id="headerTitle" text="{i18n>Toolbar.Title}"/>
                         <ToolbarSpacer/>
                         <!-- <Label text="Badge Number: {wmModel>/userBadge}"/> -->
                     </Toolbar>
                 </headerToolbar>
                 <content> 
                     <HeaderContainer id="wm" scrollStep="200" height="8rem">
-                        <TileContent id="qtyPallet" busy="{wmModel>/palletBusy}" visible="false" footer="Qty Pallet">
+                        <TileContent id="qtyPallet" busy="{wmModel>/palletBusy}" visible="false" footer="{i18n>HeaderContainer.qtyPallet}">
                             <content>
                                 <NumericContent value="{wmModel>/pallet}" icon="sap-icon://fridge" truncateValueTo="5"/>
                             </content>
                         </TileContent>
-                        <TileContent id="qtyScatola" busy="{wmModel>/scatolaBusy}" visible="false" footer="Qty Scatola">
+                        <TileContent id="qtyScatola" busy="{wmModel>/scatolaBusy}" visible="false" footer="{i18n>HeaderContainer.qtyScatola}">
                             <content>
                                 <NumericContent value="{wmModel>/scatola}" icon="sap-icon://sap-box"/>
                             </content>
                         </TileContent>
-                        <TileContent id="qtyPalletScatola" busy="{wmModel>/palletscatolaBusy}" visible="false" footer="Scatole/Pallet">
+                        <TileContent id="qtyPalletScatola" busy="{wmModel>/palletscatolaBusy}" visible="false" footer="{i18n>HeaderContainer.qtyPalletScatola}">
                             <content>
                                 <NumericContent value="{wmModel>/palletscatola}" icon="sap-icon://inbox"/>
                             </content>
                         </TileContent>
-                        <TileContent id="qtyScatoleVersate" busy="{wmModel>/scatoleVersateBusy}" visible="{= ${wmModel>/scatola} &gt; 0 &amp;&amp; ${wmModel>/scatoleVersate} &gt;= 0 }" footer="Scatole Versate" footerColor="Critical">
+                        <TileContent id="qtyScatoleVersate" busy="{wmModel>/scatoleVersateBusy}" visible="{= ${wmModel>/scatola} &gt; 0 &amp;&amp; ${wmModel>/scatoleVersate} &gt;= 0 }" footer="{i18n>HeaderContainer.qtyScatoleVersate}" footerColor="Critical">
                             <content>
                                 <NumericContent value="{wmModel>/scatoleVersate}" valueColor="Critical" icon="sap-icon://tri-state"/>   
                             </content>
@@ -43,17 +43,17 @@
                     <!-- Table -->
                     <Table
                         id="itemsTable"
-                        headerText="{= 'Posizioni (' + ( ${wmModel>/lineItems} ? ${wmModel>/lineItems}.length : 0 ) + ')'}"
+                        headerText="{i18n>Table.headerText} {= ' (' + ( ${wmModel>/lineItems} ? ${wmModel>/lineItems}.length : 0 ) + ')'}"
                         items="{wmModel>/lineItems}"                        
                         width="100%"
                         inset="false"
                         mode="None">
                         
                         <columns>
-                            <Column><Text text="Material No."/></Column>
-                            <Column><Text text="Descri"/></Column>
-                            <Column><Text text="Storage Location"/></Column>
-                            <Column hAlign="End" visible="false"><Text text="Posted Quantity"/></Column>
+                            <Column><Text text="{i18n>Table.Column.Mat}"/></Column>
+                            <Column><Text text="{i18n>Table.Column.Desc}"/></Column>
+                            <Column><Text text="{i18n>Table.Column.Sto}"/></Column>
+                            <Column hAlign="End" visible="false"><Text text="{i18n>Table.Column.Post}"/></Column>
                             <Column hAlign="Center"></Column>
                         </columns>
 
@@ -68,7 +68,7 @@
                                         <Button 
                                         id="manualBtn" 
                                         enabled="{enableModel>/manualBtnEnabled}"
-                                        icon="sap-icon://touch" text="Chiusura HU manuale" type="Reject" visible="{= ${wmModel>/scatola} &gt; 0 &amp;&amp; ${wmModel>/scatoleVersate} &gt; 0 }" press=".onChiusuraManuale" ariaLabelledBy="editButtonLabel" class="sapUiTinyMarginTop"/>
+                                        icon="sap-icon://touch" text="{i18n>Button.HU}" type="Reject" visible="{= ${wmModel>/scatola} &gt; 0 &amp;&amp; ${wmModel>/scatoleVersate} &gt; 0 }" press=".onChiusuraManuale" ariaLabelledBy="editButtonLabel" class="sapUiTinyMarginTop"/>
                                     </VBox>
   
                                     <Text text="{wmModel>description}"/>
@@ -91,13 +91,13 @@
                                         wrap="Wrap"
                                         class="sapUiSmallMargin">
                                         <Button
-                                            text="Registrazioni"
+                                            text="{i18n>Button.Regis}"
                                             press=".onShowPostings"
                                             class="sapUiTinyMarginEnd" />
                                         <Button
                                             id="recordBtn"
                                             enabled="{enableModel>/recordBtnEnabled}"
-                                            text="Registra"
+                                            text="{i18n>Button.Post}"
                                             type="Emphasized"
                                             press=".onPostItem" />
                                     </HBox>

@@ -1,7 +1,7 @@
 <core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core" xmlns:f="sap.ui.layout.form">
     <Dialog 
         id="goodsReceiptDialog"
-        title="Create Goods Receipt"
+        title="{i18n>GoodReceipt.Title}"
         class="sapUiContentPadding"
         resizable="false"
         draggable="true"
@@ -23,11 +23,11 @@
             width="100%">
 
             <!-- Material Number -->
-            <Label text="Material Number" required="true"/>
+            <Label text="{i18n>GoodReceipt.Label.Mat}" required="true"/>
             <Input value="{wmModel>/selectedItem/material}" editable="false" enabled="false"/>
 
             <!-- Quantity / Unit -->
-            <Label text="Quantity / Unit" required="true"/>
+            <Label text="{i18n>GoodReceipt.Label.Qty}" required="true"/>
             <HBox>
                 <Input width="50%" value="{wmModel>/selectedItem/quantity}" type="Number" editable="false" enabled="false"/>
                 <StepInput
@@ -38,26 +38,26 @@
 						step="1"
 						enabled="true"
 						editable="true"
-                        description="Scatola/e"
+                        description="{i18n>GoodReceipt.Label.Step}"
 						validationMode="LiveChange"
 						change="onChangeStep"/>
                 <Select selectedKey="{wmModel>/selectedItem/uom}" enabled="false">
-                    <core:Item key="PC" text="PC - Piece"/>
-                    <core:Item key="KG" text="KG - Kilogram"/>
+                    <core:Item key="PC" text="{i18n>GoodReceipt.Select.Txt1}"/>
+                    <core:Item key="KG" text="{i18n>GoodReceipt.Select.Txt2}"/>
                 </Select>
-                <Button text="Calculate" enabled="false"/>
+                <Button text="{i18n>GoodReceipt.Btn}" enabled="false"/>
             </HBox>
 
             <!-- Storage Location -->
-            <Label text="Storage Location" required="true"/>
+            <Label text="{i18n>GoodReceipt.Label.Stor}" required="true"/>
             <Input value="{wmModel>/selectedItem/storageLocation}" editable="false" enabled="false"/>
 
             <!-- Posted By -->
-            <Label text="Posted By"/>
+            <Label text="{i18n>GoodReceipt.Label.Post}"/>
             <Input value="{wmModel>/selectedItem/postedBy}" editable="false" enabled="false"/>
 
             <!-- Posting Date Time -->
-            <Label text="Posting Date Time" required="true"/>
+            <Label text="{i18n>GoodReceipt.Label.PostDate}" required="true"/>
             <DateTimePicker
                 value="{wmModel>/selectedItem/postingDateTime}"
                 editable="false"
@@ -67,15 +67,15 @@
             />
 
             <!-- Comments -->
-            <Label text="Comments"/>
+            <Label text="{i18n>GoodReceipt.Label.Comm}"/>
             <TextArea value="{wmModel>/selectedItem/comments}" rows="3"/>
         </f:SimpleForm>
 
         <beginButton>
-            <Button text="Confirm" type="Emphasized" press=".onDialogConfirm"/>
+            <Button text="{i18n>GoodReceipt.Btn.Conf}" type="Emphasized" press=".onDialogConfirm"/>
         </beginButton>
         <endButton>
-            <Button text="Cancel" press=".onCloseDialog"/>
+            <Button text="{i18n>GoodReceipt.Btn.Canc}" press=".onCloseDialog"/>
         </endButton>
     </Dialog>
 </core:FragmentDefinition>
