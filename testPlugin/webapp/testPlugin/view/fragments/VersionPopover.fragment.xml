@@ -1,0 +1,13 @@
+<core:FragmentDefinition
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core">
+	<Popover
+		id="myPopover"
+		title="{i18n>Version.Title}"
+		class="sapUiResponsivePadding--header sapUiResponsivePadding--footer"
+		placement="Bottom">
+		<VBox class="sapUiSmallMargin">
+		    <Text text="{i18n>Version.Text} {versionModel>/version}" id="versionApp"  />
+		</VBox>
+	</Popover>
+</core:FragmentDefinition>

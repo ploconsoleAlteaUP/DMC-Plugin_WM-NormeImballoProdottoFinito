@@ -13,6 +13,12 @@
                     <Toolbar height="3rem">
                         <Title id="headerTitle" text="{i18n>Toolbar.Title}"/>
                         <ToolbarSpacer/>
+                        <Button 
+                            id="infoBtn"
+                            icon="sap-icon://information" press=".onInfo" class="sapUiTinyMarginTop"/>
+                        <Button 
+                            id="resfreshBtn" visible="{= ${wmModel>/scatola} &gt; 0 }"
+                            icon="sap-icon://refresh" press=".onRefresh" class="sapUiTinyMarginTop"/>
                         <!-- <Label text="Badge Number: {wmModel>/userBadge}"/> -->
                     </Toolbar>
                 </headerToolbar>

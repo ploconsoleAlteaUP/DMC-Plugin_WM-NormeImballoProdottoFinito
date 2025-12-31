@@ -26,6 +26,11 @@ sap.ui.define([
                 manualBtnEnabled: true
             });
             this.getView().setModel(jsonModel, "enableModel");
+
+            let jsonVersionModel = new JSONModel({
+                version: "1.0.1"
+            });
+            this.getView().setModel(jsonVersionModel, "versionModel");
         },
 
         onAfterRendering: function () {
@@ -1050,7 +1055,7 @@ sap.ui.define([
             this.setEnabledRecordAndManualClosing(sEventId);
 
             // hide busy indicator
-            if (sEventId === "phaseCompleteEvent"){
+            if (sEventId === "phaseCompleteEvent") {
                 sap.ui.core.BusyIndicator.hide();
             }
         },
@@ -1173,21 +1178,21 @@ sap.ui.define([
             }
         },
 
-        handlePhaseCompletePress: function(sChannelId, sEventId, oData) {
+        handlePhaseCompletePress: function (sChannelId, sEventId, oData) {
             console.log("handlePhaseCompletePress per l'evento " + sEventId);
             if (_TYPE === "B" && oController.getView().getModel("wmModel").getProperty("/scatoleVersate") > 0) {
-                oController.showConfirmBox(oController.getI18nText("boxNotRecorder"), function() { oController.closeAndComplete(oData); });
+                oController.showConfirmBox(oController.getI18nText("boxNotRecorder"), function () { oController.closeAndComplete(oData); });
             } else {
                 // mostrare message box di conferma e al click su Conferma avviare la funzione standard del press su Complete button
                 oController.showConfirmBox(oController.getI18nText("completeConfirmation"), oData.complete);
             }
         },
 
-        showConfirmBox: function(text, callback){
+        showConfirmBox: function (text, callback) {
             var sConfirm = oController.getI18nText("confirm");
             MessageBox.confirm(text, {
                 actions: [sConfirm, oController.getI18nText("cancel")],
-                onClose: function(oAction) {
+                onClose: function (oAction) {
                     if (oAction === sConfirm) {
                         callback();
                     }
@@ -1196,22 +1201,69 @@ sap.ui.define([
             });
         },
 
-        closeAndComplete: function(oData){
+        closeAndComplete: function (oData) {
             // richiamare la Chiusura HU manuale e attendere il lancio di tutti i postQtyConfirmation
             oController.onConfermaChiusuraManuale()
-                .then(function(res){
+                .then(function (res) {
                     // Show busy indicator
                     sap.ui.core.BusyIndicator.show(0);
 
                     // solo in caso di chiusura con successo attendere 2 minuti e richiamare la funzione standard del press su Complete button
-                    setTimeout(function() { 
-                        oData.complete(); 
+                    setTimeout(function () {
+                        oData.complete();
                     }, 120000);
                 })
-                .catch(function(err){
+                .catch(function (err) {
                     sap.ui.core.BusyIndicator.hide();
                     console.error("Errore in closeAndComplete:", err);
                 })
-        }
+        },
+
+        onRefresh: async function (oEvent) {
+            sap.ui.core.BusyIndicator.show(0);
+
+            const podSelectionModel = this.getPodSelectionModel();
+            const orderData = podSelectionModel.selectedOrderData;
+            var iCountOld = await Service.getCountInboundDelivery(oController, EWMWarehouse, orderData.order);
+
+            await Service.postInboundDelivery(oController, _TYPE, async function (sType, sMessage, bProceede) {
+
+                oController.getGoodsReceiptData();
+
+                if (sType === "success") {
+                    sap.m.MessageToast.show(`Aggiornamento avvenuto con successo`);
+                } else {
+                    sap.m.MessageBox.error(sMessage);
+                }
+                // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
+                if (bProceede) {
+                    await oController.postQtyConfirmation(false);
+                    sap.ui.core.BusyIndicator.hide();
+                } else {
+                    sap.ui.core.BusyIndicator.hide();
+                }
+
+            }, false, iCountOld, (_TYPE === "A" ? WarehouseProcessTypeA : WarehouseProcessTypeB), PackagingMaterial);
+        },
+         onInfo: function(oEvent) {
+            var oButton = oEvent.getSource(),
+				oView = oController.getView();
+
+			// create popover
+			if (!oController._pPopover) {
+				oController._pPopover = Fragment.load({
+					id: oView.getId(),
+					name: "altea.dmc.plugin.testPlugin.testPlugin.view.fragments.VersionPopover",
+					controller: oController
+				}).then(function(oPopover) {
+					oView.addDependent(oPopover);
+					oPopover.bindElement("/ProductCollection/0");
+					return oPopover;
+				});
+			}
+			oController._pPopover.then(function(oPopover) {
+				oPopover.openBy(oButton);
+			});
+         }
     });
 });
