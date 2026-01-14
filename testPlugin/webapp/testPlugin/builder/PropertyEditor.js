@@ -30,6 +30,8 @@ sap.ui.define([
 			this.addInputField(oPropertyFormContainer, "WarehouseProcessTypeA", oData);
 			this.addInputField(oPropertyFormContainer, "WarehouseProcessTypeB", oData);
 
+			this.addInputField(oPropertyFormContainer, "WarehouseVers", oData);
+
             oFormContainer = oPropertyFormContainer;
 		},
 		
@@ -43,7 +45,8 @@ sap.ui.define([
                 "postQtyConfirmation": true,
 				"EWMWarehouse": "2350",
 				"WarehouseProcessTypeA": "Z115",
-				"WarehouseProcessTypeB": "Z999"
+				"WarehouseProcessTypeB": "Z999",
+				"WarehouseVers": "100"
 			};
 		}
 

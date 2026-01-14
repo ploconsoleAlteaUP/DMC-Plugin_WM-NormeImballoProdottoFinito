@@ -28,7 +28,7 @@ sap.ui.define([
             this.getView().setModel(jsonModel, "enableModel");
 
             let jsonVersionModel = new JSONModel({
-                version: "1.0.1"
+                version: "1.0.9"
             });
             this.getView().setModel(jsonVersionModel, "versionModel");
         },
@@ -360,6 +360,26 @@ sap.ui.define([
                             lineItems[0].storageLocation = oData.erpPutawayStorageLocation;
                             lineItems[0].warehouseNumber = oData.warehouseNumber;
                             wmModel.setProperty("/lineItems", lineItems);
+                        }
+
+                        if (oData && oData.erpPutawayStorageLocation && oData.erpPutawayStorageLocation.length > 0) {
+                            if (!oController.getConfiguration().WarehouseVers.split(",").includes(oData.erpPutawayStorageLocation)) {
+                                MessageBox.error("Magazzino Logico non configurato correttamente.\nContattare il responsabile.", {
+                                    onClose: function (sAction) {
+                                        // Torna indietro alla pagina precedente
+                                        window.history.back();
+                                    },
+                                    dependentOn: oController.getView()
+                                });
+                            }
+                        } else {
+                            MessageBox.error("Magazzino Logico non configurato correttamente.\nContattare il responsabile.", {
+                                onClose: function (sAction) {
+                                    // Torna indietro alla pagina precedente
+                                    window.history.back();
+                                },
+                                dependentOn: oController.getView()
+                            });
                         }
 
                         resolve(oData);
@@ -771,7 +791,7 @@ sap.ui.define([
                     sfc: orderData.sfc,
                     operationActivity: podSelectionModel.operations[0].operation,
                     workCenter: oData.workcenter || orderData.workcenter,//orderData.workcenter, 
-                    yieldQuantity: oData.quantity,
+                    yieldQuantity: oData.quantity * (isManual ? oController.getView().getModel("wmModel").getProperty("/scatoleVersate") : (oController.getView().getModel("wmModel").getProperty("/palletscatola") === 0 ? 1 : oController.getView().getModel("wmModel").getProperty("/palletscatola"))), //oData.quantity,
                     yieldQuantityUnit: orderData.baseInternalUom,
                     // scrapQuantity	[...]
                     // scrapQuantityUnit	[...]
@@ -787,20 +807,20 @@ sap.ui.define([
 
                 const that = this;
 
-                for (var i = 0; i < Number(isManual ? oController.getView().getModel("wmModel").getProperty("/scatoleVersate") : (oController.getView().getModel("wmModel").getProperty("/palletscatola") === 0 ? 1 : oController.getView().getModel("wmModel").getProperty("/palletscatola"))); i++) {
-                    AjaxUtil.post(
-                        sUrl,
-                        payload,
-                        function (oResponseData) {
-                            console.log("POST Quantity Confirmation - Success");
-                            that.setScatoleVersate(oData.workcenter || orderData.workcenter);
-                        },
-                        function (oError, sHttpErrorMessage) {
-                            console.log("Errore nel POST Quantity Confirmation:", sHttpErrorMessage, oError);
-                            // sap.m.MessageBox.error("Errore nel POST Goods Receipt: " + sHttpErrorMessage);
-                        }
-                    );
-                }
+                //for (var i = 0; i < Number(isManual ? oController.getView().getModel("wmModel").getProperty("/scatoleVersate") : (oController.getView().getModel("wmModel").getProperty("/palletscatola") === 0 ? 1 : oController.getView().getModel("wmModel").getProperty("/palletscatola"))); i++) {
+                AjaxUtil.post(
+                    sUrl,
+                    payload,
+                    function (oResponseData) {
+                        console.log("POST Quantity Confirmation - Success");
+                        that.setScatoleVersate(oData.workcenter || orderData.workcenter);
+                    },
+                    function (oError, sHttpErrorMessage) {
+                        console.log("Errore nel POST Quantity Confirmation:", sHttpErrorMessage, oError);
+                        // sap.m.MessageBox.error("Errore nel POST Goods Receipt: " + sHttpErrorMessage);
+                    }
+                );
+                //}
 
             } catch (err) {
                 console.log("Error posting quantity confirmation", err);
@@ -1245,25 +1265,25 @@ sap.ui.define([
 
             }, false, iCountOld, (_TYPE === "A" ? WarehouseProcessTypeA : WarehouseProcessTypeB), PackagingMaterial);
         },
-         onInfo: function(oEvent) {
+        onInfo: function (oEvent) {
             var oButton = oEvent.getSource(),
-				oView = oController.getView();
+                oView = oController.getView();
 
-			// create popover
-			if (!oController._pPopover) {
-				oController._pPopover = Fragment.load({
-					id: oView.getId(),
-					name: "altea.dmc.plugin.testPlugin.testPlugin.view.fragments.VersionPopover",
-					controller: oController
-				}).then(function(oPopover) {
-					oView.addDependent(oPopover);
-					oPopover.bindElement("/ProductCollection/0");
-					return oPopover;
-				});
-			}
-			oController._pPopover.then(function(oPopover) {
-				oPopover.openBy(oButton);
-			});
-         }
+            // create popover
+            if (!oController._pPopover) {
+                oController._pPopover = Fragment.load({
+                    id: oView.getId(),
+                    name: "altea.dmc.plugin.testPlugin.testPlugin.view.fragments.VersionPopover",
+                    controller: oController
+                }).then(function (oPopover) {
+                    oView.addDependent(oPopover);
+                    oPopover.bindElement("/ProductCollection/0");
+                    return oPopover;
+                });
+            }
+            oController._pPopover.then(function (oPopover) {
+                oPopover.openBy(oButton);
+            });
+        }
     });
 });

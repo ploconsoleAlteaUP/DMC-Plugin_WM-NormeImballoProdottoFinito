@@ -26,7 +26,7 @@ sap.ui.define([
                     const results = oResponseData.steps.filter(a => a.stepRouting.routing === sRouterID);
                     if (!!!!results && results.length > 0) {
                         resolve(results[0].resource || results[0].plannedWorkCenter);
-                        
+
                         oView.getModel("wmModel").getProperty("/lineItems")[0]["workcenter"] = results[0].resource === null ? results[0].plannedWorkCenter : results[0].resource;
                     } else {
                         resolve(null)
@@ -54,11 +54,11 @@ sap.ui.define([
                 },
                 success: function (oData) {
                     //aggiornare view e mostrare il messaggio di success
-                    
+
                 },
                 error: function (oError) {
                     //Mostrare errore
-                    
+
                 }
             });
 
@@ -70,11 +70,11 @@ sap.ui.define([
                 },
                 success: function (oData) {
                     //aggiornare view e mostrare il messaggio di success
-                    
+
                 },
                 error: function (oError) {
                     //Mostrare errore
-                    
+
                 }
             });
         },
@@ -96,7 +96,7 @@ sap.ui.define([
 
             return await new Promise((resolve, reject) => {
                 AjaxUtil.get(sUrl + sFilters, undefined, (oResponseData) => {
-                    
+
                     const details = oResponseData?.value;
                     /*const results = oResponseData.steps.filter(a => a.stepRouting.routing === sRouterID);*/
                     if (!!!!details && details.length > 0) {
@@ -119,7 +119,7 @@ sap.ui.define([
             const sFilters = `$filter=EWMWarehouse eq '${EWMWarehouse}' and ManufacturingOrder eq '${sOrder}' and GoodsReceiptStatus eq '1'&$count=true`;
             return await new Promise((resolve, reject) => {
                 AjaxUtil.get(`${sUrl}?${sFilters}`, undefined, (oResponseData) => {
-                    
+
                     const details = oResponseData?.value;
                     /*const results = oResponseData.steps.filter(a => a.stepRouting.routing === sRouterID);*/
                     if (!!!!details) {
@@ -139,15 +139,15 @@ sap.ui.define([
             const sUrl = `${DEST_CAP}/$metadata`;
             AjaxUtil.get(sUrl, undefined, function (oData) {
                 //aggiornare view e mostrare il messaggio di success
-                
+
             },
-            function (oError) {
-                //Mostrare errore
-                
-            });
+                function (oError) {
+                    //Mostrare errore
+
+                });
         },
 
-        postInboundDelivery: async function (oController, sType, sFunction, isManual=false, iCountOld, WarehouseProcessType, PackagingMaterial) {
+        postInboundDelivery: async function (oController, sType, sFunction, isManual = false, iCountOld, WarehouseProcessType, PackagingMaterial) {
             const sUrl = `${DEST_CAP}/WMInboundDelivery`;
             if (sType === "A") {
 
@@ -164,14 +164,14 @@ sap.ui.define([
 
                 AjaxUtil.post(sUrl, payload, async function (oData) {
                     //aggiornare view e mostrare il messaggio di success
-                    
+
                     if (!!!!sFunction) {
                         await sFunction("success", "", oData.proceed);
                     }
                 },
                     async function (oError) {
                         //Mostrare errore
-                        
+
                         if (!!!!sFunction) {
                             await sFunction("error", "Si è verificato un errore nel versamento.\nContattare un responsabile");
                         }
@@ -208,7 +208,7 @@ sap.ui.define([
 
                 AjaxUtil.post(sUrl, payload, function (oData) {
                     //aggiornare view e mostrare il messaggio di success
-                    
+
                     if (!!!!sFunction) {
                         if (oData.status === "success") {
                             sFunction("success", "", oData.proceed);
@@ -218,11 +218,25 @@ sap.ui.define([
 
                     }
                 },
-                    function (oError) {
+                    function (oJsonError, sMessageError, oStatusError) {
                         //Mostrare errore
-                        
+                        //var iStatus = oError && oError.status;
+
+                        try {
+                            if (oStatusError == 504) {
+                                // SOLO timeout gateway
+                                if (!!!!sFunction) {
+                                    sFunction("error", !!!!sMessageError && sMessageError.length > 0 ? sMessageError : "Potrebbe essersi verificato un errore.\nContattare un responsabile", true);
+                                }
+                                return;
+                            }
+
+                        } catch (error) {
+
+                        }
+
                         if (!!!!sFunction) {
-                            sFunction("error", "Si è verificato un errore nel versamento.\nContattare un responsabile");
+                            sFunction("error", !!!!sMessageError ? "Si è verificato un errore nel versamento.\nContattare un responsabile" : sMessageError);
                         }
                     });
 
@@ -266,7 +280,7 @@ sap.ui.define([
         },
 
         // {{api_test}}/user/v1/users?plant=PLE1&email=fcimatti@alteanet.it
-        getUserBadge: async function(oView, sPlant, email){            
+        getUserBadge: async function (oView, sPlant, email) {
             const sUrl = `${DEST_DMC}/user/v1/users`;
             const oParameters = {
                 plant: sPlant,
