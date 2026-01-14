@@ -59,7 +59,7 @@ sap.ui.define([
             //Inizializzo i SERVICE
             Service = new Service(EWMWarehouse);
 
-            Service.test();
+            //Service.test();
         },
 
         // NO LONGER NEEDED
