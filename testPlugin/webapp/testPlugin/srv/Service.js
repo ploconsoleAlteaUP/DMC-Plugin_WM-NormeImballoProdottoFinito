@@ -168,8 +168,7 @@ sap.ui.define([
                     if (!!!!sFunction) {
                         await sFunction("success", "", oData.proceed);
                     }
-                },
-                    async function (oError) {
+                }, async function (oErrorJson, oErrorMessage, oErrorStatus) {
                         //Mostrare errore
 
                         if (!!!!sFunction) {
@@ -220,7 +219,7 @@ sap.ui.define([
                 },
                     function (oJsonError, sMessageError, oStatusError) {
                         //Mostrare errore
-                        //var iStatus = oError && oError.status;
+                        console.log("►►► SONO IN ERRORE ◄◄◄", oJsonError);
 
                         try {
                             if (oStatusError == 504) {

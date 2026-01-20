@@ -28,7 +28,7 @@ sap.ui.define([
             this.getView().setModel(jsonModel, "enableModel");
 
             let jsonVersionModel = new JSONModel({
-                version: "1.0.9"
+                version: "1.0.13"
             });
             this.getView().setModel(jsonVersionModel, "versionModel");
         },
@@ -533,6 +533,8 @@ sap.ui.define([
                 oSelectedItem["stepQuantity"] = 1;
             }
 
+            oSelectedItem["enabled"] = _TYPE === "B";
+
             oModel.setProperty("/selectedItem", oSelectedItem);
 
             if (!this._oGoodsReceiptDialog) {
@@ -784,13 +786,61 @@ sap.ui.define([
                 // https://api.sap.com/api/sapdme_quantityConfirmation/resource/Post_Quantity_Confirmation
                 const sUrl = `/destination/S4H_DMC_API/quantityConfirmation/v1/confirm`;
 
+
+                //Getione postingDateTime - inizio
+                const date = new Date(oData.postingDateTime);
+                const postingDateTime = new Date(
+                    date.toLocaleString("sv-SE", { timeZone: "Europe/Rome" }));
+                //const postingDateTimeString = postingDateTime.toISOString();
+
+                function toISOInTimeZone(dateLike, timeZone = "Europe/Rome") {
+                    const date = new Date(dateLike);
+
+                    // Prendo i componenti locali del fuso desiderato
+                    const parts = new Intl.DateTimeFormat("sv-SE", {
+                        timeZone,
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                        hour12: false,
+                    }).format(date); // "YYYY-MM-DD HH:mm:ss"
+
+                    // Millisecondi (se supportato)
+                    const ms = date.getMilliseconds().toString().padStart(3, "0");
+
+                    // Offset del fuso (es. "GMT+1" o "GMT+2")
+                    const tzLabel = new Intl.DateTimeFormat("en-US", {
+                        timeZone,
+                        timeZoneName: "shortOffset", // -> "GMT+1" o "GMT+2"
+                    }).formatToParts(date).find(p => p.type === "timeZoneName")?.value || "GMT+0";
+
+                    // Converto "GMT+1" in "+01:00"
+                    const match = tzLabel.match(/GMT([+-]\d{1,2})(?::?(\d{2}))?/i);
+                    const sign = match ? match[1][0] : "+";
+                    const hh = match ? Math.abs(parseInt(match[1], 10)).toString().padStart(2, "0") : "00";
+                    const mm = match && match[2] ? match[2] : "00";
+                    const offset = `${sign}${hh}:${mm}`;
+
+                    // Assemblaggio ISO locale (senza Z, con offset)
+                    const [ymd, hms] = parts.split(" ");
+                    return `${ymd}T${hms}.${ms}${offset}`;
+                }
+
+                const isoRome = toISOInTimeZone(oData.postingDateTime, "Europe/Rome");
+                const postingDateTimeString = isoRome;
+                //Getione postingDateTime - fine
+
+
                 // Post_Quantity_Confirmation payload
                 const payload = {
                     plant: (sap.dm.dme.util.PlantSettings).getCurrentPlant(),
                     shopOrder: orderData.order,
                     sfc: orderData.sfc,
                     operationActivity: podSelectionModel.operations[0].operation,
-                    workCenter: oData.workcenter || orderData.workcenter,//orderData.workcenter, 
+                    workCenter: orderData.workcenter.includes(",") ? podSelectionModel.customData.workcenter : orderData.workcenter,//orderData.workcenter, 
                     yieldQuantity: oData.quantity * (isManual ? oController.getView().getModel("wmModel").getProperty("/scatoleVersate") : (oController.getView().getModel("wmModel").getProperty("/palletscatola") === 0 ? 1 : oController.getView().getModel("wmModel").getProperty("/palletscatola"))), //oData.quantity,
                     yieldQuantityUnit: orderData.baseInternalUom,
                     // scrapQuantity	[...]
@@ -800,7 +850,7 @@ sap.ui.define([
                     postedBy: oData.postedBy,
                     // batchNumber	[...]
                     storageLocation: oData.storageLocation,
-                    postingDateTime: oData.postingDateTime// ISO-8601 yyyy-MM-dd'T'HH:mm:ss.SSS'Z', example: 2022-08-31T23:53:34.123Z
+                    postingDateTime: postingDateTimeString// ISO-8601 yyyy-MM-dd'T'HH:mm:ss.SSS'Z', example: 2022-08-31T23:53:34.123Z
                     // finalConfirmation	[...]
                     // checkSchedulingAndOeeRelevant
                 };
@@ -813,7 +863,7 @@ sap.ui.define([
                     payload,
                     function (oResponseData) {
                         console.log("POST Quantity Confirmation - Success");
-                        that.setScatoleVersate(oData.workcenter || orderData.workcenter);
+                        that.setScatoleVersate(orderData.workcenter.includes(",") ? podSelectionModel.customData.workcenter : orderData.workcenter);
                     },
                     function (oError, sHttpErrorMessage) {
                         console.log("Errore nel POST Quantity Confirmation:", sHttpErrorMessage, oError);
@@ -858,7 +908,7 @@ sap.ui.define([
                     material: oData.material, // "G10079A0IML0179"
                     // materialVersion: oData.materialVersion || "ERP001",
                     postedBy: oData.postedBy,
-                    postingDateTime: oData.postingDateTime, //effettuare il versamento con data di ieri se siamo nel terzo turno?
+                    postingDateTime: new Date(oData.postingDateTime).toLocaleString("sv-SE", { timeZone: "Europe/Rome" }), //effettuare il versamento con data di ieri se siamo nel terzo turno?
                     quantity: {
                         value: oData.quantity * (oData.stepQuantity || 1),
                         unitOfMeasure: {

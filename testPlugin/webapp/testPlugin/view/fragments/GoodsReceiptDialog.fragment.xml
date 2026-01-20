@@ -36,7 +36,7 @@
 						min="1"
 						max="{wmModel>/selectedItem/stepMaxQuantity}"
 						step="1"
-						enabled="true"
+						enabled="{wmModel>/selectedItem/enabled}"
 						editable="true"
                         description="{i18n>GoodReceipt.Label.Step}"
 						validationMode="LiveChange"
