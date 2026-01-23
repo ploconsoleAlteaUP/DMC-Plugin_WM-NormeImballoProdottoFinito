@@ -7,11 +7,14 @@ sap.ui.define([
     "sap/m/Dialog",
     "../model/formatter",
     "sap/dm/dme/model/AjaxUtil",
-    "../srv/Service"
-], function (jQuery, PluginViewController, JSONModel, Fragment, MessageBox, Dialog, formatter, AjaxUtil, Service) {
+    "../srv/Service",
+    "../util/Utils"
+], function (jQuery, PluginViewController, JSONModel, Fragment, MessageBox, Dialog, formatter, AjaxUtil, Service, Utils) {
     "use strict";
 
-    let oController, EWMWarehouse, _TYPE = "", actualNumber = 0, isOnConfirmation = false, WarehouseProcessTypeA = "", WarehouseProcessTypeB = "", _RemainingStepQuantity = 0, PackagingMaterial = "";
+    let oController, EWMWarehouse, _TYPE = "", actualNumber = 0, isOnConfirmation = false, WarehouseProcessTypeA = "", WarehouseProcessTypeB = "", _RemainingStepQuantity = 0, PackagingMaterial = "",
+        GOOD_RECEIPT_TYPE = "Production Order Goods Receipt", QUANTITY_CONFIRMATION_TYPE = "Production Order Quantity Confirmation", DATENOW_INTEGRATION_MESSAGE_DASHBOARD = undefined,
+        IS_MANUAL_CONFIRMATION = false, UPDATE_QUANTITY_TO_CHECK = 0;
     return PluginViewController.extend("altea.dmc.plugin.testPlugin.testPlugin.controller.MainView", {
         formatter: formatter,
 
@@ -28,7 +31,7 @@ sap.ui.define([
             this.getView().setModel(jsonModel, "enableModel");
 
             let jsonVersionModel = new JSONModel({
-                version: "1.0.13"
+                version: "1.0.14"
             });
             this.getView().setModel(jsonVersionModel, "versionModel");
         },
@@ -82,7 +85,7 @@ sap.ui.define([
         },
         */
 
-        loadData: function () {
+        loadData: async function (qtaCheck) {
             oController.setEnabledRecordAndManualClosing();
 
             const that = this;
@@ -253,7 +256,7 @@ sap.ui.define([
             var items = [{
                 material: orderData.material.material,
                 description: orderData.material.description,
-                postedQuantityDisplay: Number(orderData.completedQty) + ' of ' + Number(orderData.plannedQty) + ' ' + orderData.baseCommercialUom,
+                postedQuantityDisplay: Number(orderData.completedQty) + ' di ' + Number(orderData.plannedQty) + ' ' + orderData.baseCommercialUom,
                 postedQuantityPercent: Number((100 * orderData.completedQty) / orderData.plannedQty)
             }];
 
@@ -261,6 +264,15 @@ sap.ui.define([
 
             // get storage location
             this.getPutawayStorageLocation();
+
+            //Controllo se la quantità versata è aumentata rispetto all'ultimo refresh
+            /*if(qtaCheck) {
+                if(qtaCheck > orderData.completedQty) {
+                    //effettuare un versamento
+                    
+                    await oController.postQtyConfirmation(IS_MANUAL_CONFIRMATION);
+                }
+            }*/
         },
 
         manageChangeNumberScatola: async function (iNewNumber) {
@@ -620,7 +632,8 @@ sap.ui.define([
                 }
 
                 sap.ui.core.BusyIndicator.show(0);
-
+                DATENOW_INTEGRATION_MESSAGE_DASHBOARD = new Date();
+                IS_MANUAL_CONFIRMATION = true;
                 await Service.postInboundDelivery(oController, "B", async function (sType, sMessage, bProceede) {
                     oController.getGoodsReceiptData();
 
@@ -637,6 +650,14 @@ sap.ui.define([
                     //} else {
                     //    sap.ui.core.BusyIndicator.hide();
                     //}
+
+                    //controllo per far aggiornare il counter delle scatole
+                    if (_TYPE === "B" && actualNumber == oModel.getData().scatoleVersate) {
+                        console.log("►►► Rifaccio la chiamata perché il counter delle scatole versate non si è aggiornato ◄◄◄");
+                        await oController.onRefresh();
+                    }
+
+                    await oController.manageIntegrationMessage(DATENOW_INTEGRATION_MESSAGE_DASHBOARD, QUANTITY_CONFIRMATION_TYPE, false, 0, true);
 
                     // Resolve o reject in base all'esito
                     if (sType === "success") {
@@ -693,7 +714,7 @@ sap.ui.define([
                 //while(_RemainingStepQuantity > 0) {
                 //    await oController.wait(1000);
                 //}
-
+                IS_MANUAL_CONFIRMATION = false;
                 if (res) {
                     //Richiamare la 
                     // /sap/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/WhseInboundDeliveryItem?$filter=EWMWarehouse eq 'PLE1' and ManufacturingOrder eq '1000023' and GoodsReceiptStatus eq '1'&$count=true
@@ -701,7 +722,7 @@ sap.ui.define([
                     const podSelectionModel = this.getPodSelectionModel();
                     const orderData = podSelectionModel.selectedOrderData;
                     var iCountOld = await Service.getCountInboundDelivery(oController, EWMWarehouse, orderData.order);
-
+                    DATENOW_INTEGRATION_MESSAGE_DASHBOARD = new Date();
                     await Service.postInboundDelivery(oController, _TYPE, async function (sType, sMessage, bProceede) {
 
                         oController.getGoodsReceiptData();
@@ -719,9 +740,21 @@ sap.ui.define([
                             sap.ui.core.BusyIndicator.hide();
                         }
 
+                        //controllo per far aggiornare il counter delle scatole
+                        if (_TYPE === "B" && actualNumber == oModel.getData().scatoleVersate) {
+                            console.log("►►► Rifaccio la chiamata perché il counter delle scatole versate non si è aggiornato ◄◄◄");
+                            await oController.onRefresh();
+                        }
+
+                        await oController.manageIntegrationMessage(DATENOW_INTEGRATION_MESSAGE_DASHBOARD, QUANTITY_CONFIRMATION_TYPE, true);
+
                     }, false, iCountOld, (_TYPE === "A" ? WarehouseProcessTypeA : WarehouseProcessTypeB), PackagingMaterial);
+
+
+
+
                 } else {
-                    sap.ui.core.BusyIndicator.hide();
+                    oController.getGoodsReceiptData();
                 }
 
 
@@ -742,6 +775,167 @@ sap.ui.define([
             } finally {
 
             }
+        },
+
+        manageIntegrationMessage: async function (dateNow, sType, isAutomaticClosing, iTime = 0, bForce = false, onResolve) {
+
+            //sType indica se è
+            // Production Order Goods Receipt
+            // Production Order Quantity Confirmation
+            const podSelectionModel = oController.getPodSelectionModel();
+            const orderData = podSelectionModel.selectedOrderData;
+            const order = orderData.order;
+
+            //La data di comunicazione deve essere in UTC (quindi non in CET)
+            const dateNowPlusOneMinute = new Date(dateNow.getTime() + 60 * 1000),
+                nowIso = dateNow.toISOString(),
+                plusOneMinuteIso = dateNowPlusOneMinute.toISOString();
+
+            let sUrl = `/destination/S4H_DMC_API/integration/v1/integrationMessages?plant=PLE1&createdOnFrom=${nowIso}&createdOnTo=${plusOneMinuteIso}`
+
+            if (sType === QUANTITY_CONFIRMATION_TYPE) {
+                sUrl += `&messageTypes=${QUANTITY_CONFIRMATION_TYPE}`;
+            } else if (sType === GOOD_RECEIPT_TYPE) {
+                sUrl += `&messageTypes=${GOOD_RECEIPT_TYPE}`;
+            }
+
+            await AjaxUtil.get(sUrl, undefined, async (oResponseData) => {
+                /* 
+                {
+                "content": [
+                        {
+                        "id": "92c8d798-ed1a-4c12-b6f3-f48bd1724268",
+                        "plant": "PLE1",
+                        "messageNumber": "2026012213433383107200",
+                        "messageType": "Production Order Quantity Confirmation",
+                        "overallStatus": "COMPLETED"
+                        }
+                ]
+                }*/
+                if (oResponseData && oResponseData?.content && oResponseData.content.length > 0) {
+
+                    for (let oItem of oResponseData.content) {
+                        console.log("►►► Integration Message Dashboard  ◄◄◄", oItem);
+
+                        if (oItem?.overallStatus == "FAILED") {
+                            debugger;
+                            //Controllo il messaggio d'errore
+                            let sBaseUrl = oController.getView().getParent().getPodOwnerComponent().getManifestObject().resolveUri("dme/messagedashboard-ms/").replace("sapdmdmepod","sapdmdmeintegrationmessagemonitor");
+
+                            await AjaxUtil.get(`${sBaseUrl}IntegrationMessageItems?$filter=(messageHeader/id eq '${oItem.id}')`, undefined, async (oResponseData_) => {
+                                /* 
+                                {
+                                    "@odata.context": "$metadata#IntegrationMessageItems/$entity",
+                                    "value": [
+                                        {
+                                            "id": "f616fb5d-e49f-42b1-b7d7-5c355b84f72d",
+                                            "leadingMessage": true,
+                                            "eventType": "sap.dsc.dm.ReportDIQuantityConfirmation.Requested.v1",
+                                            "businessObjectIdentifier": "PLE1/1000003/0010/0.0/0/CNF",
+                                            "eventPayload": null,
+                                            "requestUrl": "/API_PROD_ORDER_CONFIRMATION_2_SRV/ProdnOrdConf2",
+                                            "requestBody": null,
+                                            "status": "FAILED",
+                                            "responseBody": null,
+                                            "errorDetails": "Collaboration execution failed due to the external error: External System S4HANA_CLOUD has Exception: Order 1000003 is already being processed by CB9980000010",
+                                            "possibleSolution": null,
+                                            "correlationId": "82869a82-c40a-4164-bcf8-e0e57c86a493",
+                                            "requestId": "026ed7f1-0a90-45af-9528-48f7ec5f8fec",
+                                            "sapPassport": "2A54482A0300E60000646D652D736663657865637574696F6E2D6D7300000000000000000000000000000064756D6D79000000000000000000000000000000000000000000000000000000504F53543A2F636F6D706C6574654F7065726174696F6E4163746976697479000000000000000000000B646D652D736663657865637574696F6E2D6D73000000000000000000000000003641414539423239323432463438354539414230423343363841304135444144200000002939454AB6985A474E8B7CD35E47094C4CBE02D716C2914C6493FE1091221F284100000002000000002A54482A",
+                                            "processingType": "Q",
+                                            "retryCount": 5,
+                                            "producerRetryable": true,
+                                            "consumerRetryable": true,
+                                            "topicName": "production",
+                                            "cpiCorrelationId": null,
+                                            "version": 23,
+                                            "createdOn": "2026-01-09T14:58:24.4599674Z",
+                                            "modifiedOn": "2026-01-10T03:04:11.0701848Z",
+                                            "startedAt": "2026-01-09T14:58:24.3511634Z",
+                                            "lastUpdatedAt": "2026-01-09T15:03:29.5455629Z",
+                                            "lastRetryTriggeredAt": "2026-01-09T15:03:29.0985931Z",
+                                            "rawMessageFileId": "dme-messagedashboard-ms/fd681808-34fb-432d-ad45-e3e54492a722/message_item/f616fb5d-e49f-42b1-b7d7-5c355b84f72d/raw_message",
+                                            "eventPayloadFileId": "dme-messagedashboard-ms/fd681808-34fb-432d-ad45-e3e54492a722/message_item/f616fb5d-e49f-42b1-b7d7-5c355b84f72d/event_payload",
+                                            "requestBodyFileId": "dme-messagedashboard-ms/fd681808-34fb-432d-ad45-e3e54492a722/message_item/f616fb5d-e49f-42b1-b7d7-5c355b84f72d/request_body",
+                                            "responseBodyFileId": "dme-messagedashboard-ms/fd681808-34fb-432d-ad45-e3e54492a722/message_item/f616fb5d-e49f-42b1-b7d7-5c355b84f72d/response_body",
+                                            "duration": "PT5M5.1943995S"
+                                        }
+                                    ]
+                                }*/
+                                if (oResponseData_ && oResponseData_?.value && oResponseData_?.value.length > 0) {
+                                    let sMessage = oResponseData_?.value[0].errorDetails;
+
+                                    if (sType === GOOD_RECEIPT_TYPE) {
+                                        Utils.onShowTextErrorWithAutomaticClose(oController, "Errore", "Si è scatenato un errore di comunicazione", sMessage, 10, function () { if (onResolve) onResolve(undefined) });
+                                    } else {
+                                        Utils.onShowTextErrorWithAutomaticClose(oController, "Errore", "Si è scatenato un errore di comunicazione", sMessage, 5, async function () {
+                                            let sBaseUrl = oController.getView().getParent().getPodOwnerComponent().getManifestObject().resolveUri("dme/messagedashboard-ms/").replace("sapdmdmepod","sapdmdmeintegrationmessagemonitor"),
+                                                payload = { "requests": [{ "messageId": oItem.id, "retryStatus": "FAILED" }], "retryMode": "SEQUENTIAL" };
+
+                                            await AjaxUtil.post(
+                                                `${sBaseUrl}integrationMessages/batchRetry`,
+                                                payload,
+                                                async function (oResponseData) {
+                                                    console.log("RETRY - SUCCESS", oResponseData);
+                                                    await oController.onRefresh();
+                                                },
+                                                function (oErrorJson, oErrorMessage, oErrorStatus) {
+                                                    console.log("RETRY - ERROR", oErrorJson);
+                                                }
+                                            );
+                                        });
+                                    }
+
+                                }
+                            }, (oErrorJson, oErrorMessage, oErrorStatus) => {
+                                console.log("INTEGRATION MESSAGE ITEMS - ERROR", oErrorJson);
+                                if (sType === GOOD_RECEIPT_TYPE) {
+                                    if (onResolve) onResolve("OK");
+                                }
+                            });
+
+                        } else if(oItem?.overallStatus == "NEW" || oItem?.overallStatus == "QUEUED" || oItem?.overallStatus == "IN_PROCESS"){
+                            await oController.manageIntegrationMessage(dateNow, sType, isAutomaticClosing, iTime, bForce, onResolve);
+                            
+                        } else {
+                            if (sType === GOOD_RECEIPT_TYPE) {
+                                if (onResolve) onResolve("OK");
+                            }
+                        }
+                    }
+
+                } else {
+                    if (iTime < 3) {
+
+                        // wait di 3 secondi in modo da far generare correttamente il messaggio nell'integration message dashboard
+                        await new Promise(function (resolve) {
+                            setTimeout(resolve, 3000);
+                        });
+                        iTime += 1;
+
+                        oController.manageIntegrationMessage(dateNow, sType, isAutomaticClosing, iTime, bForce, onResolve);
+                    } else if (sType == QUANTITY_CONFIRMATION_TYPE) {
+                        iTime = 0;
+
+                        //creo la quantity confirmation perché, per qualche motivo, non è andata a buon fine.
+                        if (bForce) {
+                            debugger;
+                            //await oController.postQtyConfirmation(isAutomaticClosing);
+                        }
+
+                    } else {
+                        if (onResolve) {
+                            onResolve("OK");
+                        }
+                    }
+                }
+
+            }, (oErrorJson, oErrorMessage, oErrorStatus) => {
+                console.log("INTEGRATION MESSAGE - ERROR", oErrorJson);
+                if (sType === GOOD_RECEIPT_TYPE) {
+                    if (onResolve) onResolve("OK");
+                }
+            });
         },
 
         //Chiamo la Good Receipt in modalità multipla per evitare l'erroe di  exceed quantity
@@ -841,7 +1035,7 @@ sap.ui.define([
                     sfc: orderData.sfc,
                     operationActivity: podSelectionModel.operations[0].operation,
                     workCenter: orderData.workcenter.includes(",") ? podSelectionModel.customData.workcenter : orderData.workcenter,//orderData.workcenter, 
-                    yieldQuantity: oData.quantity * (isManual ? oController.getView().getModel("wmModel").getProperty("/scatoleVersate") : (oController.getView().getModel("wmModel").getProperty("/palletscatola") === 0 ? 1 : oController.getView().getModel("wmModel").getProperty("/palletscatola"))), //oData.quantity,
+                    yieldQuantity: oData.quantity * (isManual ? oController.getView().getModel("wmModel").getProperty("/scatoleVersate") : (oController.getView().getModel("wmModel").getProperty("/palletscatola") === 0 ? 1 : oController.getView().getModel("wmModel").getProperty("/palletscatola"))),//oData.quantity * (isManual ? oController.getView().getModel("wmModel").getProperty("/scatoleVersate") : (oController.getView().getModel("wmModel").getProperty("/palletscatola") === 0 ? 1 : (oData?.stepQuantity || 1) > 0 ? (oData?.stepQuantity || 1) : oController.getView().getModel("wmModel").getProperty("/palletscatola"))), //oData.quantity,
                     yieldQuantityUnit: orderData.baseInternalUom,
                     // scrapQuantity	[...]
                     // scrapQuantityUnit	[...]
@@ -856,7 +1050,7 @@ sap.ui.define([
                 };
 
                 const that = this;
-
+                DATENOW_INTEGRATION_MESSAGE_DASHBOARD = new Date();
                 //for (var i = 0; i < Number(isManual ? oController.getView().getModel("wmModel").getProperty("/scatoleVersate") : (oController.getView().getModel("wmModel").getProperty("/palletscatola") === 0 ? 1 : oController.getView().getModel("wmModel").getProperty("/palletscatola"))); i++) {
                 AjaxUtil.post(
                     sUrl,
@@ -870,6 +1064,8 @@ sap.ui.define([
                         // sap.m.MessageBox.error("Errore nel POST Goods Receipt: " + sHttpErrorMessage);
                     }
                 );
+
+                await oController.manageIntegrationMessage(DATENOW_INTEGRATION_MESSAGE_DASHBOARD, QUANTITY_CONFIRMATION_TYPE, !isManual, 0, true);
                 //}
 
             } catch (err) {
@@ -922,19 +1118,24 @@ sap.ui.define([
             };
 
             return await new Promise((resolve, reject) => {
+                DATENOW_INTEGRATION_MESSAGE_DASHBOARD = new Date();
+
                 AjaxUtil.post(
                     sUrl,
                     payload,
-                    function (oResponseData) {
+                    async function (oResponseData) {
                         console.log("POST Goods Receipt - Success:");
+                        if(oResponseData && oResponseData?.lineItems?.[0]?.totalQuantity?.value) UPDATE_QUANTITY_TO_CHECK = oResponseData?.lineItems?.[0]?.totalQuantity?.value;
+                        await oController.manageIntegrationMessage(DATENOW_INTEGRATION_MESSAGE_DASHBOARD, GOOD_RECEIPT_TYPE, true, 0, false, resolve);
                         // sap.m.MessageToast.show("Goods Receipt creato con successo!");
-                        resolve(oResponseData);
+                        //resolve(oResponseData);
                     },
-                    function (oError, sHttpErrorMessage) {
-                        console.log("Errore nel POST Goods Receipt:", sHttpErrorMessage, oError);
+                    function (oErrorJson, oErrorMessage, oErrorStatus) {
+                        console.log("Errore nel POST Goods Receipt:", oErrorJson);
                         try {
-                            var sMessageError = oError.error.message;
-                            sap.m.MessageBox.error(sMessageError);
+                            if (oErrorMessage && oErrorMessage.length > 0) {
+                                sap.m.MessageBox.error(oErrorMessage);
+                            }
                         } catch (error) {
 
                         }
@@ -945,132 +1146,6 @@ sap.ui.define([
                 );
             });
         },
-
-        // chiama https://api.sap.com/api/WAREHOUSEINBOUNDDELIVERY_0001/path/get_WhseInboundDeliveryItem a polling per massimo 10 secondi per recuperare EWMInboundDelivery 
-        /*getWmInboundDeliveryItem: function () {
-            const MAX_DURATION = 10000; // 10 secondi
-            const oView = this.getView();
-            const oModel = oView.getModel("wmModel");
-            const oData = oModel.getProperty("/lineItems");
-            const podSelectionModel = this.getPodSelectionModel();
-            const orderData = podSelectionModel.selectedOrderData;
-
-            const sUrl = `/destination/S4H_ODATA_INTEGRATION_ODATA4/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/WhseInboundDeliveryItem`;
-            const sParams = `?EWMWarehouse=${encodeURIComponent(oData[0].warehouseNumber)}`
-                + `&ManufacturingOrder=${encodeURIComponent(orderData.order)}`
-                + `&GoodsReceiptStatus=1`;
-
-            return new Promise((resolve, reject) => {
-                let stopped = false;
-
-                // Timeout massimo
-                const timeoutId = setTimeout(() => {
-                    
-                    stopped = true;
-                    console.warn("Timeout: nessun EWMInboundDelivery trovato entro 10 secondi.");
-                    reject();
-                }, MAX_DURATION);
-
-                const poll = () => {
-                    if (stopped) return;
-
-                    try {
-                        console.log("Polling:", sUrl + sParams, new Date().toISOString());
-
-                        AjaxUtil.get(
-                            sUrl + sParams,
-                            (response) => {
-                                console.log("Polling response:", response);
-
-                                if (response?.value?.length > 0) {
-                                    stopped = true;
-                                    clearTimeout(timeoutId);
-                                    resolve(response.value);
-                                } else if (!stopped) {
-                                    // Attendi 300ms prima di ripetere altrimenti il polling entra in un loop troppo veloce e il browser, non avendo ancora rilasciato completamente le connessioni precedenti, finisce per saturare le risorse di rete
-                                    setTimeout(poll, 300);
-                                }
-                            },
-                            (error, msg) => {
-                                console.warn("Errore nel polling:", msg, error);
-
-                                // Se 404 o simile, continua comunque a pollare dopo 300 ms
-                                if (!stopped) {
-                                    // Attendi 300ms prima di ripetere altrimenti il polling entra in un loop troppo veloce e il browser, non avendo ancora rilasciato completamente le connessioni precedenti, finisce per saturare le risorse di rete
-                                    setTimeout(poll, 300);
-                                }
-                            }
-                        );
-                    } catch (err) {
-                        console.error("Eccezione durante il polling:", err);
-                        if (!stopped) {
-                            // Attendi 300ms prima di ripetere altrimenti il polling entra in un loop troppo veloce e il browser, non avendo ancora rilasciato completamente le connessioni precedenti, finisce per saturare le risorse di rete
-                            setTimeout(poll, 300);
-                        }
-                    }
-                };
-
-                poll();
-            });
-        },*/
-
-        // chiama https://api.sap.com/api/WAREHOUSEINBOUNDDELIVERY_0001/path/get_WhseInboundDeliveryItem per il valore di EWMInboundDelivery appena ricavato per registrare l’entrata merci su SAP per ogni EWMInboundDelivery trovata
-        // N.B: eseguirlo in loop se sono stati eccezionalmente trovati più valori
-        /*postWmInboundDeliveryItem: async function (EWMInboundDeliveryArray) {
-            try {
-                const podSelectionModel = this.getPodSelectionModel();
-                const orderData = podSelectionModel.selectedOrderData;
-
-                const sUrl = `/destination/S4H_ODATA_INTEGRATION_ODATA4/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/WhseInboundDeliveryItem`;
-
-                // Crea un array di Promise (una per ogni chiamata POST)
-                const aPromises = EWMInboundDeliveryArray.map((deliveryObj) => {
-
-                    const sUrl = `/destination/S4H_ODATA_INTEGRATION/api_whse_inb_delivery_2/srvd_a2x/sap/warehouseinbounddelivery/0001/WhseInboundDeliveryItem/${deliveryObj.EWMInboundDelivery}/${deliveryObj.EWMInboundDeliveryItem}/SAP__self.AdjustDeliveryItemQuantity`;
-
-                    return new Promise((resolve, reject) => {
-                        AjaxUtil.post(
-                            sUrl,
-                            payload,
-                            function (oResponseData) {
-                                
-                                console.log(
-                                    `POST Warehouse Inbound Delivery Item per ${deliveryObj.EWMInboundDelivery}/${deliveryObj.EWMInboundDeliveryItem} - Success:`,
-                                    oResponseData
-                                );
-                                resolve(oResponseData);
-                            },
-                            function (oError, sHttpErrorMessage) {
-                                
-                                console.log(
-                                    `Errore nel POST Warehouse Inbound Delivery Item per ${deliveryObj.EWMInboundDelivery}/${deliveryObj.EWMInboundDeliveryItem}:`,
-                                    sHttpErrorMessage,
-                                    oError
-                                );
-                                reject(oError);
-                            }
-                        );
-                    });
-                });
-
-                // Attendo che tutte le chiamate si completino in parallelo
-                const results = await Promise.allSettled(aPromises);
-
-                // Analisi risultati
-                
-                const success = results.filter(r => r.status === "fulfilled").length;
-                const failed = results.filter(r => r.status === "rejected").length;
-
-                console.log(`POST completate: ${success} OK, ${failed} fallite.`);
-                sap.m.MessageToast.show(`POST completate: ${success} OK, ${failed} fallite.`);
-
-            } catch (err) {
-                console.log("Errore generale durante le POST Warehouse Inbound Delivery Item:", err);
-                sap.m.MessageBox.error("Errore generale durante le POST Warehouse Inbound Delivery Item.");
-            } finally {
-                sap.ui.core.BusyIndicator.hide();
-            }
-        },*/
 
         onBeforeRenderingPlugin: function () {
             // intercettazione/sottoscrizione eventi
@@ -1105,10 +1180,6 @@ sap.ui.define([
             console.log("oData in handleAssemblyStatusEvent", oData);
 
             this.loadData();
-            /*this.getView().byId("componentValue").setText(oData.scanInput);
-            this.getView().byId("statusButton").setText(oData.status);
-            this.getView().byId("statusButton").setType(oData.type);
-            this.getView().byId("messageValue").setText(oData.message);*/
         },
 
         handleWorklistSelectEvent: function (s, E, oData) {
@@ -1183,7 +1254,8 @@ sap.ui.define([
             if (oSelectedOrderData) {
                 oController.publish("goodsReceiptSummaryEvent", oSelectedOrderData);
             }
-            oController.loadData();
+            sap.ui.core.BusyIndicator.hide();
+            oController.loadData(UPDATE_QUANTITY_TO_CHECK);
         },
 
         // setEnabledRecordAndManualClosing: function(sEventId){
@@ -1307,6 +1379,7 @@ sap.ui.define([
                 }
                 // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
                 if (bProceede) {
+                    debugger;
                     await oController.postQtyConfirmation(false);
                     sap.ui.core.BusyIndicator.hide();
                 } else {
