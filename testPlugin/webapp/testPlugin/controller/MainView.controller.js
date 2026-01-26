@@ -31,7 +31,7 @@ sap.ui.define([
             this.getView().setModel(jsonModel, "enableModel");
 
             let jsonVersionModel = new JSONModel({
-                version: "1.0.14"
+                version: "1.0.15"
             });
             this.getView().setModel(jsonVersionModel, "versionModel");
         },
@@ -680,27 +680,7 @@ sap.ui.define([
             4- quando la Warehouse_Inbound_Delivery_Item va a buon fine eseguire POST Warehouse_Inbound_Delivery_Item per il valore di EWMInboundDelivery appena ricavato 
                (o eseguirlo in loop se sono stati eccezionalmente trovati più valori) per registrare l’entrata merci su SAP.
          */
-        onDialogConfirm: async function (evt) {
-            oController.isOnConfirmation = true;
-            oController.actualNumber = oController.getView().getModel("wmModel").getProperty("/scatoleVersate");
-            // oController.getView().byId("recordBtn").setEnabled(false);
-            oController.getView().getModel("enableModel").setProperty("/recordBtnEnabled", false);
-
-            try {
-                //oController.getView().byId("manualBtn").setEnabled(true);
-                oController.getView().byId("recordBtn").setEnabled(false);
-            } catch (error) {
-
-            }
-
-            // Close dialog
-            if (this._oGoodsReceiptDialog) {
-                this._oGoodsReceiptDialog.close();
-            }
-
-            // Show busy indicator
-            sap.ui.core.BusyIndicator.show(0);
-
+        _executeGoodReceiptAndQuantityConfirmation: async function () {
             try {
 
                 // chiamare POST postErpGoodsReceiptsUsingPOST_2 e attenderne l'esito
@@ -776,6 +756,30 @@ sap.ui.define([
 
             }
         },
+        onDialogConfirm: async function (evt) {
+            oController.isOnConfirmation = true;
+            oController.actualNumber = oController.getView().getModel("wmModel").getProperty("/scatoleVersate");
+            // oController.getView().byId("recordBtn").setEnabled(false);
+            oController.getView().getModel("enableModel").setProperty("/recordBtnEnabled", false);
+
+            try {
+                //oController.getView().byId("manualBtn").setEnabled(true);
+                oController.getView().byId("recordBtn").setEnabled(false);
+            } catch (error) {
+
+            }
+
+            // Close dialog
+            if (this._oGoodsReceiptDialog) {
+                this._oGoodsReceiptDialog.close();
+            }
+
+            // Show busy indicator
+            sap.ui.core.BusyIndicator.show(0);
+
+            oController._executeGoodReceiptAndQuantityConfirmation();
+
+        },
 
         manageIntegrationMessage: async function (dateNow, sType, isAutomaticClosing, iTime = 0, bForce = false, onResolve) {
 
@@ -820,7 +824,7 @@ sap.ui.define([
                         if (oItem?.overallStatus == "FAILED") {
                             debugger;
                             //Controllo il messaggio d'errore
-                            let sBaseUrl = oController.getView().getParent().getPodOwnerComponent().getManifestObject().resolveUri("dme/messagedashboard-ms/").replace("sapdmdmepod","sapdmdmeintegrationmessagemonitor");
+                            let sBaseUrl = oController.getView().getParent().getPodOwnerComponent().getManifestObject().resolveUri("dme/messagedashboard-ms/").replace("sapdmdmepod", "sapdmdmeintegrationmessagemonitor");
 
                             await AjaxUtil.get(`${sBaseUrl}IntegrationMessageItems?$filter=(messageHeader/id eq '${oItem.id}')`, undefined, async (oResponseData_) => {
                                 /* 
@@ -866,10 +870,30 @@ sap.ui.define([
                                     let sMessage = oResponseData_?.value[0].errorDetails;
 
                                     if (sType === GOOD_RECEIPT_TYPE) {
-                                        Utils.onShowTextErrorWithAutomaticClose(oController, "Errore", "Si è scatenato un errore di comunicazione", sMessage, 10, function () { if (onResolve) onResolve(undefined) });
+                                        Utils.onShowTextErrorWithAutomaticClose(oController, "Errore", "Si è scatenato un errore di comunicazione", sMessage, 10, async function () {
+
+                                            let sBaseUrl = oController.getView().getParent().getPodOwnerComponent().getManifestObject().resolveUri("dme/messagedashboard-ms/").replace("sapdmdmepod", "sapdmdmeintegrationmessagemonitor"),
+                                                payload = { "requests": [{ "messageId": oResponseData_?.value[0].id, "retryStatus": "FAILED" }], "retryMode": "SEQUENTIAL" };
+
+                                            await AjaxUtil.post(
+                                                `${sBaseUrl}integrationMessages/batchRetry`,
+                                                payload,
+                                                async function (oResponseData) {
+                                                    console.log("RETRY - SUCCESS", oResponseData);
+                                                    //await oController.onRefresh();
+                                                    if (onResolve) onResolve("OK")
+                                                },
+                                                function (oErrorJson, oErrorMessage, oErrorStatus) {
+                                                    console.log("RETRY - ERROR", oErrorJson);
+                                                }
+                                            );
+
+                                            oController.manageIntegrationMessage(dateNow, sType, isAutomaticClosing, iTime, bForce, onResolve);
+
+                                        });
                                     } else {
                                         Utils.onShowTextErrorWithAutomaticClose(oController, "Errore", "Si è scatenato un errore di comunicazione", sMessage, 5, async function () {
-                                            let sBaseUrl = oController.getView().getParent().getPodOwnerComponent().getManifestObject().resolveUri("dme/messagedashboard-ms/").replace("sapdmdmepod","sapdmdmeintegrationmessagemonitor"),
+                                            let sBaseUrl = oController.getView().getParent().getPodOwnerComponent().getManifestObject().resolveUri("dme/messagedashboard-ms/").replace("sapdmdmepod", "sapdmdmeintegrationmessagemonitor"),
                                                 payload = { "requests": [{ "messageId": oItem.id, "retryStatus": "FAILED" }], "retryMode": "SEQUENTIAL" };
 
                                             await AjaxUtil.post(
@@ -894,9 +918,9 @@ sap.ui.define([
                                 }
                             });
 
-                        } else if(oItem?.overallStatus == "NEW" || oItem?.overallStatus == "QUEUED" || oItem?.overallStatus == "IN_PROCESS"){
+                        } else if (oItem?.overallStatus == "NEW" || oItem?.overallStatus == "QUEUED" || oItem?.overallStatus == "IN_PROCESS") {
                             await oController.manageIntegrationMessage(dateNow, sType, isAutomaticClosing, iTime, bForce, onResolve);
-                            
+
                         } else {
                             if (sType === GOOD_RECEIPT_TYPE) {
                                 if (onResolve) onResolve("OK");
@@ -1125,7 +1149,7 @@ sap.ui.define([
                     payload,
                     async function (oResponseData) {
                         console.log("POST Goods Receipt - Success:");
-                        if(oResponseData && oResponseData?.lineItems?.[0]?.totalQuantity?.value) UPDATE_QUANTITY_TO_CHECK = oResponseData?.lineItems?.[0]?.totalQuantity?.value;
+                        if (oResponseData && oResponseData?.lineItems?.[0]?.totalQuantity?.value) UPDATE_QUANTITY_TO_CHECK = oResponseData?.lineItems?.[0]?.totalQuantity?.value;
                         await oController.manageIntegrationMessage(DATENOW_INTEGRATION_MESSAGE_DASHBOARD, GOOD_RECEIPT_TYPE, true, 0, false, resolve);
                         // sap.m.MessageToast.show("Goods Receipt creato con successo!");
                         //resolve(oResponseData);
