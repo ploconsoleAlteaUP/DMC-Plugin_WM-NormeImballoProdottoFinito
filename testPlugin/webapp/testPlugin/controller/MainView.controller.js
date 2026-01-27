@@ -276,7 +276,7 @@ sap.ui.define([
         },
 
         manageChangeNumberScatola: async function (iNewNumber) {
-            // debugger;
+            // 
             //
             if (iNewNumber === oController.actualNumber && oController.isOnConfirmation) {
                 oController.getView().getModel("wmModel").setProperty("/scatoleVersateBusy", true);
@@ -726,7 +726,7 @@ sap.ui.define([
                             await oController.onRefresh();
                         }
 
-                        await oController.manageIntegrationMessage(DATENOW_INTEGRATION_MESSAGE_DASHBOARD, QUANTITY_CONFIRMATION_TYPE, true);
+                        //await oController.manageIntegrationMessage(DATENOW_INTEGRATION_MESSAGE_DASHBOARD, QUANTITY_CONFIRMATION_TYPE, true);
 
                     }, false, iCountOld, (_TYPE === "A" ? WarehouseProcessTypeA : WarehouseProcessTypeB), PackagingMaterial);
 
@@ -804,73 +804,24 @@ sap.ui.define([
             }
 
             await AjaxUtil.get(sUrl, undefined, async (oResponseData) => {
-                /* 
-                {
-                "content": [
-                        {
-                        "id": "92c8d798-ed1a-4c12-b6f3-f48bd1724268",
-                        "plant": "PLE1",
-                        "messageNumber": "2026012213433383107200",
-                        "messageType": "Production Order Quantity Confirmation",
-                        "overallStatus": "COMPLETED"
-                        }
-                ]
-                }*/
+
                 if (oResponseData && oResponseData?.content && oResponseData.content.length > 0) {
 
                     for (let oItem of oResponseData.content) {
                         console.log("►►► Integration Message Dashboard  ◄◄◄", oItem);
 
                         if (oItem?.overallStatus == "FAILED") {
-                            debugger;
+
                             //Controllo il messaggio d'errore
                             let sBaseUrl = oController.getView().getParent().getPodOwnerComponent().getManifestObject().resolveUri("dme/messagedashboard-ms/").replace("sapdmdmepod", "sapdmdmeintegrationmessagemonitor");
 
                             await AjaxUtil.get(`${sBaseUrl}IntegrationMessageItems?$filter=(messageHeader/id eq '${oItem.id}')`, undefined, async (oResponseData_) => {
-                                /* 
-                                {
-                                    "@odata.context": "$metadata#IntegrationMessageItems/$entity",
-                                    "value": [
-                                        {
-                                            "id": "f616fb5d-e49f-42b1-b7d7-5c355b84f72d",
-                                            "leadingMessage": true,
-                                            "eventType": "sap.dsc.dm.ReportDIQuantityConfirmation.Requested.v1",
-                                            "businessObjectIdentifier": "PLE1/1000003/0010/0.0/0/CNF",
-                                            "eventPayload": null,
-                                            "requestUrl": "/API_PROD_ORDER_CONFIRMATION_2_SRV/ProdnOrdConf2",
-                                            "requestBody": null,
-                                            "status": "FAILED",
-                                            "responseBody": null,
-                                            "errorDetails": "Collaboration execution failed due to the external error: External System S4HANA_CLOUD has Exception: Order 1000003 is already being processed by CB9980000010",
-                                            "possibleSolution": null,
-                                            "correlationId": "82869a82-c40a-4164-bcf8-e0e57c86a493",
-                                            "requestId": "026ed7f1-0a90-45af-9528-48f7ec5f8fec",
-                                            "sapPassport": "2A54482A0300E60000646D652D736663657865637574696F6E2D6D7300000000000000000000000000000064756D6D79000000000000000000000000000000000000000000000000000000504F53543A2F636F6D706C6574654F7065726174696F6E4163746976697479000000000000000000000B646D652D736663657865637574696F6E2D6D73000000000000000000000000003641414539423239323432463438354539414230423343363841304135444144200000002939454AB6985A474E8B7CD35E47094C4CBE02D716C2914C6493FE1091221F284100000002000000002A54482A",
-                                            "processingType": "Q",
-                                            "retryCount": 5,
-                                            "producerRetryable": true,
-                                            "consumerRetryable": true,
-                                            "topicName": "production",
-                                            "cpiCorrelationId": null,
-                                            "version": 23,
-                                            "createdOn": "2026-01-09T14:58:24.4599674Z",
-                                            "modifiedOn": "2026-01-10T03:04:11.0701848Z",
-                                            "startedAt": "2026-01-09T14:58:24.3511634Z",
-                                            "lastUpdatedAt": "2026-01-09T15:03:29.5455629Z",
-                                            "lastRetryTriggeredAt": "2026-01-09T15:03:29.0985931Z",
-                                            "rawMessageFileId": "dme-messagedashboard-ms/fd681808-34fb-432d-ad45-e3e54492a722/message_item/f616fb5d-e49f-42b1-b7d7-5c355b84f72d/raw_message",
-                                            "eventPayloadFileId": "dme-messagedashboard-ms/fd681808-34fb-432d-ad45-e3e54492a722/message_item/f616fb5d-e49f-42b1-b7d7-5c355b84f72d/event_payload",
-                                            "requestBodyFileId": "dme-messagedashboard-ms/fd681808-34fb-432d-ad45-e3e54492a722/message_item/f616fb5d-e49f-42b1-b7d7-5c355b84f72d/request_body",
-                                            "responseBodyFileId": "dme-messagedashboard-ms/fd681808-34fb-432d-ad45-e3e54492a722/message_item/f616fb5d-e49f-42b1-b7d7-5c355b84f72d/response_body",
-                                            "duration": "PT5M5.1943995S"
-                                        }
-                                    ]
-                                }*/
+
                                 if (oResponseData_ && oResponseData_?.value && oResponseData_?.value.length > 0) {
                                     let sMessage = oResponseData_?.value[0].errorDetails;
 
                                     if (sType === GOOD_RECEIPT_TYPE) {
-                                        Utils.onShowTextErrorWithAutomaticClose(oController, "Errore", "Si è scatenato un errore di comunicazione", sMessage, 10, async function () {
+                                        Utils.onShowTextErrorWithAutomaticClose(oController, "Errore", "Si è verificato un errore durante il versamento", sMessage, 10, async function () {
 
                                             let sBaseUrl = oController.getView().getParent().getPodOwnerComponent().getManifestObject().resolveUri("dme/messagedashboard-ms/").replace("sapdmdmepod", "sapdmdmeintegrationmessagemonitor"),
                                                 payload = { "requests": [{ "messageId": oResponseData_?.value[0].id, "retryStatus": "FAILED" }], "retryMode": "SEQUENTIAL" };
@@ -880,19 +831,23 @@ sap.ui.define([
                                                 payload,
                                                 async function (oResponseData) {
                                                     console.log("RETRY - SUCCESS", oResponseData);
+                                                    if (oResponseData && oResponseData[0]?.originalOverallStatus === "COMPLETED") {
+                                                        if (onResolve) onResolve("OK");
+                                                    } else {
+                                                        oController.manageIntegrationMessage(dateNow, sType, isAutomaticClosing, iTime, bForce, onResolve);
+                                                    }
                                                     //await oController.onRefresh();
-                                                    if (onResolve) onResolve("OK")
                                                 },
                                                 function (oErrorJson, oErrorMessage, oErrorStatus) {
                                                     console.log("RETRY - ERROR", oErrorJson);
                                                 }
                                             );
 
-                                            oController.manageIntegrationMessage(dateNow, sType, isAutomaticClosing, iTime, bForce, onResolve);
+
 
                                         });
                                     } else {
-                                        Utils.onShowTextErrorWithAutomaticClose(oController, "Errore", "Si è scatenato un errore di comunicazione", sMessage, 5, async function () {
+                                        Utils.onShowTextErrorWithAutomaticClose(oController, "Errore", "Si è verificato un errore durante la conferma di quantità", sMessage, 5, async function () {
                                             let sBaseUrl = oController.getView().getParent().getPodOwnerComponent().getManifestObject().resolveUri("dme/messagedashboard-ms/").replace("sapdmdmepod", "sapdmdmeintegrationmessagemonitor"),
                                                 payload = { "requests": [{ "messageId": oItem.id, "retryStatus": "FAILED" }], "retryMode": "SEQUENTIAL" };
 
@@ -901,7 +856,11 @@ sap.ui.define([
                                                 payload,
                                                 async function (oResponseData) {
                                                     console.log("RETRY - SUCCESS", oResponseData);
-                                                    await oController.onRefresh();
+                                                    if (oResponseData && oResponseData[0]?.originalOverallStatus === "COMPLETED") {
+                                                        if (onResolve) onResolve("OK");
+                                                    } else {
+                                                        await oController.onRefresh();
+                                                    }
                                                 },
                                                 function (oErrorJson, oErrorMessage, oErrorStatus) {
                                                     console.log("RETRY - ERROR", oErrorJson);
@@ -943,7 +902,7 @@ sap.ui.define([
 
                         //creo la quantity confirmation perché, per qualche motivo, non è andata a buon fine.
                         if (bForce) {
-                            debugger;
+
                             //await oController.postQtyConfirmation(isAutomaticClosing);
                         }
 
@@ -1403,7 +1362,7 @@ sap.ui.define([
                 }
                 // chiamare POST Post_Quantity_Confirmation in base alla configurazione postQtyConfirmation
                 if (bProceede) {
-                    debugger;
+
                     await oController.postQtyConfirmation(false);
                     sap.ui.core.BusyIndicator.hide();
                 } else {
