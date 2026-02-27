@@ -19,6 +19,8 @@
                         <Button 
                             id="resfreshBtn" visible="{= ${wmModel>/scatola} &gt; 0 }"
                             icon="sap-icon://refresh" press=".onRefresh" class="sapUiTinyMarginTop"/>
+                        <Button 
+                            id="miraitekBtn" tooltip="{i18n>Toolbar.btn.miraitek}" icon="sap-icon://check-availability" press=".onCheckMiraitek" class="sapUiTinyMarginTop"/>
                         <!-- <Label text="Badge Number: {wmModel>/userBadge}"/> -->
                     </Toolbar>
                 </headerToolbar>

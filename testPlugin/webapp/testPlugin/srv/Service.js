@@ -9,7 +9,8 @@ sap.ui.define([
         DEST_ODATA_V4_POST = "/destination4/S4H_ODATA_INTEGRATION_ODATA4",
         DEST_ODATA_V4 = "/destination/S4H_ODATA_INTEGRATION_ODATA4_GET",
         DEST_DMC = "/destination/S4H_DMC_API",
-        DEST_CAP = "/destination/S4H_CAP_SERVICES_EWM"; //
+        DEST_CAP = "/destination/S4H_CAP_SERVICES_EWM",
+        DEST_MIRAITEK = "/destination/SERVICE_MIRAITEK"; //
 
     return {
 
@@ -110,6 +111,81 @@ sap.ui.define([
             });
         },
 
+        checkAvailableByMiraitek: async function(sCentroDiLavoro) {
+            //DEST_MIRAITEK
+            const sUrl = `${DEST_MIRAITEK}/api/queue`;
+            const oParameters = {
+                machine: sCentroDiLavoro
+            };
+
+            const returned = await new Promise((resolve, reject) => {
+                AjaxUtil.get(sUrl, oParameters, (oResponseData) => {
+                    //const details = oResponseData?.details;
+                    const results = oResponseData?.inQueue ;
+                    if (!!!!results && results.length > 0) {
+                        resolve(results);
+                    } else {
+                        resolve(null);
+                    }
+
+                }, (oError, sHttpErrorMessage) => {
+                    resolve(null);
+                });
+            });
+
+            return returned;
+        },
+
+        getQuantityAlignment: async function (EWMWarehouse, sOrder) {
+            const sUrl = `${DEST_ODATA_V2}/API_PRODUCTION_ORDER_2_SRV/A_ProductionOrder_2`,
+                sFilters = `?$filter=ProductionPlant eq '${EWMWarehouse}' and ManufacturingOrder eq '${sOrder}'`;
+
+            var oModel = new sap.ui.model.odata.v2.ODataModel(DEST_ODATA_V2 + "/API_PRODUCTION_ORDER_2_SRV");
+
+            return await new Promise((resolve, reject) => {
+                oModel.read("/A_ProductionOrder_2", {
+                    filters: [
+                        new sap.ui.model.Filter("ProductionPlant", "EQ", EWMWarehouse),
+                        new sap.ui.model.Filter("ManufacturingOrder", "EQ", sOrder)
+                    ],
+                    success: function (oData) {
+                        const details = oData?.results;
+                        /*const results = oResponseData.steps.filter(a => a.stepRouting.routing === sRouterID);*/
+                        if (!!!!details && details.length > 0) {
+                            var iConfirmed = details[0].MfgOrderConfirmedYieldQty;
+                            resolve(iConfirmed);
+                        }
+                    },
+                    error: function (oData) {
+                        reject("");
+                    }
+                });
+            });
+
+            /*return await new Promise((resolve, reject) => {
+                AjaxUtil.get(sUrl + sFilters, {
+                    "Accept": "application/json"
+                }, (oResponseData) => {
+
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(oResponseData, "text/xml");
+
+                    const node = xmlDoc.getElementsByTagName("d:MfgOrderConfirmedYieldQty")[0];
+
+                    if (node) {
+                        const iConfirmed = node.textContent;
+                        resolve(iConfirmed);
+                    } else {
+                        resolve("");
+                    }
+
+                }, (oError, sHttpErrorMessage) => {
+                    //console.error("getWorkcenter:", sHttpErrorMessage);
+                    reject("");
+                });
+            });*/
+        },
+
         //EWMWarehouse eq '2350' and ManufacturingOrder eq '1000221' 
         // and GoodsReceiptStatus eq '1' and GoodsMovementBin eq '750-111'
         getCountInboundDelivery: async function (oView, EWMWarehouse, sOrder) {
@@ -169,12 +245,12 @@ sap.ui.define([
                         await sFunction("success", "", oData.proceed);
                     }
                 }, async function (oErrorJson, oErrorMessage, oErrorStatus) {
-                        //Mostrare errore
+                    //Mostrare errore
 
-                        if (!!!!sFunction) {
-                            await sFunction("error", "Si è verificato un errore nel versamento.\nContattare un responsabile");
-                        }
-                    });
+                    if (!!!!sFunction) {
+                        await sFunction("error", "Si è verificato un errore nel versamento.\nContattare un responsabile e premere il bottone \"aggiorna\" tra qualche istante.");
+                    }
+                });
 
             } else {
 

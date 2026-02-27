@@ -31,7 +31,7 @@ sap.ui.define([
             this.getView().setModel(jsonModel, "enableModel");
 
             let jsonVersionModel = new JSONModel({
-                version: "1.0.15"
+                version: "1.0.17"
             });
             this.getView().setModel(jsonVersionModel, "versionModel");
         },
@@ -45,6 +45,8 @@ sap.ui.define([
             EWMWarehouse = this.getConfiguration().EWMWarehouse;
             WarehouseProcessTypeA = this.getConfiguration().WarehouseProcessTypeA;
             WarehouseProcessTypeB = this.getConfiguration().WarehouseProcessTypeB;
+
+            this.getView().byId("miraitekBtn").setVisible(this.getConfiguration().addBtnMachineAvailable);
 
             // creo il modello di appoggio per il plugin
             let jsonModelWM = new JSONModel({ pallet: 0, scatola: 0, palletscatola: 0, palletBusy: true, scatolaBusy: true, palletscatolaBusy: true, lineItems: [] });
@@ -1049,6 +1051,8 @@ sap.ui.define([
                 );
 
                 await oController.manageIntegrationMessage(DATENOW_INTEGRATION_MESSAGE_DASHBOARD, QUANTITY_CONFIRMATION_TYPE, !isManual, 0, true);
+
+                await oController._checkCorrispondingYieldToSAP();
                 //}
 
             } catch (err) {
@@ -1056,6 +1060,24 @@ sap.ui.define([
 
             } finally {
 
+            }
+        },
+
+        _checkCorrispondingYieldToSAP: async function () {
+            const podSelectionModel = oController.getPodSelectionModel();
+            const orderData = podSelectionModel.selectedOrderData;
+            var iConfirmedQuantity = await Service.getQuantityAlignment((sap.dm.dme.util.PlantSettings).getCurrentPlant(), orderData.order);
+            if (UPDATE_QUANTITY_TO_CHECK != iConfirmedQuantity) {
+                sap.m.MessageBox.warning("Quantità versata non corrisponde con la quantità consegnata.\nSi consiglia di effettuare un refresh dal bottone 'Aggiorna'", {
+                    actions: ["Aggiorna", sap.m.MessageBox.Action.CLOSE],
+                    emphasizedAction: "Aggiorna",
+                    onClose: async function (sAction) {
+                        if (sAction === "Aggiorna") {
+                            await oController.onRefresh();
+                        }
+                    },
+                    dependentOn: oController.getView()
+                });
             }
         },
 
@@ -1342,6 +1364,36 @@ sap.ui.define([
                     sap.ui.core.BusyIndicator.hide();
                     console.error("Errore in closeAndComplete:", err);
                 })
+        },
+
+        onCheckMiraitek: async function (oEvent) {
+            sap.ui.core.BusyIndicator.show(0);
+
+            const podSelectionModel = oController.getPodSelectionModel(),
+                orderData = podSelectionModel.selectedOrderData,
+                sCentroDiLavoro = orderData.workcenter.includes(",") ? podSelectionModel.customData.workcenter : orderData.workcenter;
+
+            const bAvailable = await Service.checkAvailableByMiraitek(sCentroDiLavoro);
+            if (!bAvailable && bAvailable != null) {
+                // Posso fare versamenti
+                MessageBox.confirm(`Nessun versamento in corso sulla macchina ${sCentroDiLavoro}. Vuoi procedere con uno nuovo?`, {
+                    actions: ["Nuovo versamento", oController.getI18nText("cancel")],
+                    onClose: function (oAction) {
+                        if (oAction === "Nuovo versamento") {
+                            oController.onPostItem();
+                        }
+                    }.bind(oController),
+                    dependentOn: oController.getView()
+                });
+
+            } else if(bAvailable == null) {
+                MessageBox.warning(`Non è stato possibile verificare lo stato della macchina ${sCentroDiLavoro}.`);
+            } else {
+                //non posso fare versamenti, mostro il messaggio e mostro il messaggio che la macchina è occupata e di riprovare tra qualche istante
+                MessageBox.show(`La macchina ${sCentroDiLavoro} al momento è occupata.\nRiprovare tra qualche istante.`);
+            }
+
+            sap.ui.core.BusyIndicator.hide();
         },
 
         onRefresh: async function (oEvent) {

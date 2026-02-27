@@ -32,6 +32,8 @@ sap.ui.define([
 
 			this.addInputField(oPropertyFormContainer, "WarehouseVers", oData);
 
+			this.addSwitch(oPropertyFormContainer, "addBtnMachineAvailable", oData);
+
             oFormContainer = oPropertyFormContainer;
 		},
 		
@@ -46,7 +48,8 @@ sap.ui.define([
 				"EWMWarehouse": "2350",
 				"WarehouseProcessTypeA": "Z115",
 				"WarehouseProcessTypeB": "Z999",
-				"WarehouseVers": "100"
+				"WarehouseVers": "100",
+				"addBtnMachineAvailable": true
 			};
 		}
 
